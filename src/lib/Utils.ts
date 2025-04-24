@@ -26,7 +26,7 @@ export class List<T> extends Array<T> {
 
 		this.length = newArr.length;
 
-		for(let i = 0; i < newArr.length; i++) {
+		for (let i = 0; i < newArr.length; i++) {
 			this[i] = newArr[i];
 		}
 	}

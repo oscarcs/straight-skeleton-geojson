@@ -41,11 +41,11 @@ export default class SkeletonBuilder {
 
 		for (const polygon of multipolygon.coordinates) {
 			if (polygon.length > 0) {
-				const outer = this.listFromCoordinatesArray(polygon[0]);
+				const outer = this.listFromPolygon(polygon[0]);
 				const holes: List<List<Vector2d>> = new List();
 
 				for (let i = 1; i < polygon.length; i++) {
-					holes.add(this.listFromCoordinatesArray(polygon[i]));
+					holes.add(this.listFromPolygon(polygon[i]));
 				}
 
 				const skeleton = this.build(outer, holes);
@@ -63,10 +63,11 @@ export default class SkeletonBuilder {
 		return new Skeleton(allEdges, allDistances);
 	}
 
-	private static listFromCoordinatesArray(position: Position[]): List<Vector2d> {
+	private static listFromPolygon(positions: Position[]): List<Vector2d> {
 		const list: List<Vector2d> = new List();
 
-		for (const [x, y] of position) {
+		// Exclude the last position because it is the same as the first one, per the specification
+		for (const [x, y] of positions.slice(0, -1)) {
 			list.add(new Vector2d(x, y));
 		}
 
@@ -137,11 +138,13 @@ export default class SkeletonBuilder {
 	}
 
 	private static initPolygon(polygon: List<Vector2d>): List<Vector2d> {
-		if (polygon === null)
+		if (polygon === null) {
 			throw new Error("polygon can't be null");
+		}
 
-		if (polygon[0].equals(polygon[polygon.count - 1]))
+		if (polygon[0].equals(polygon[polygon.count - 1])) {
 			throw new Error("polygon can't start and end with the same point");
+		}
 
 		return this.makeCounterClockwise(polygon);
 	}
