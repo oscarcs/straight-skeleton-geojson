@@ -2,7 +2,8 @@
   "name": "straight-skeleton-geojson",
   "version": "0.0.1",
   "description": "Geojson based implementation of the straight skeleton algorithm.",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "prepare": "npm run build",
     "build": "tsc"
