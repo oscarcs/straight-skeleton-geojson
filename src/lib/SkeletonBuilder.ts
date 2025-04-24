@@ -30,7 +30,7 @@ import ChainType from "./Events/Chains/ChainType";
 export default class SkeletonBuilder {
 	private static readonly SPLIT_EPSILON = 1e-10;
 
-	public static BuildFromGeoJSON(multipolygon: MultiPolygon): Skeleton {
+	public static buildFromGeoJSON(multipolygon: MultiPolygon): Skeleton {
 		const allEdges: List<EdgeResult> = new List();
 		const allDistances: Dictionary<Vector2d, number> = new Dictionary();
 
