@@ -19,5 +19,8 @@
   "homepage": "https://github.com/oscarcs/straight-skeleton-geojson#readme",
   "dependencies": {
     "@types/geojson": "^7946.0.16"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
   }
 }
