@@ -1,6 +1,8 @@
 # straight-skeleton-geojson
 
-This is an adaptation of the TypeScript port of the [C# straight skeleton implementation](https://github.com/reinterpretcat/csharp-libs/tree/master/straight_skeleton) by vHawk/StrandedKitty.
+This is an adaptation of the TypeScript port by vHawk/StrandedKitty of the [C# straight skeleton implementation](https://github.com/reinterpretcat/csharp-libs/tree/master/straight_skeleton).
+
+It has been modified to input and output the correct geojson primitives.
 
 From the original C# library:
 
