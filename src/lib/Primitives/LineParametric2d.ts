@@ -13,35 +13,35 @@ export default class LineParametric2d {
 		this.U = pU;
 	}
 
-	public CreateLinearForm(): LineLinear2d {
-		const x = this.A.X;
-		const y = this.A.Y;
+	public createLinearForm(): LineLinear2d {
+		const x = this.A.x;
+		const y = this.A.y;
 
-		const B = -this.U.X;
-		const A = this.U.Y;
+		const B = -this.U.x;
+		const A = this.U.y;
 
 		const C = -(A * x + B * y);
 
-		return new LineLinear2d().SetFromCoefficients(A, B, C);
+		return new LineLinear2d().setFromCoefficients(A, B, C);
 	}
 
-	public static Collide(ray: LineParametric2d, line: LineLinear2d, epsilon: number): Vector2d {
-		const collide = LineLinear2d.Collide(ray.CreateLinearForm(), line);
-		if (collide.Equals(Vector2d.Empty)) {
+	public static collide(ray: LineParametric2d, line: LineLinear2d, epsilon: number): Vector2d {
+		const collide = LineLinear2d.collide(ray.createLinearForm(), line);
+		if (collide.equals(Vector2d.Empty)) {
 			return Vector2d.Empty;
 		}
 
-		const collideVector = collide.Sub(ray.A);
-		return ray.U.Dot(collideVector) < epsilon ? Vector2d.Empty : collide;
+		const collideVector = collide.sub(ray.A);
+		return ray.U.dot(collideVector) < epsilon ? Vector2d.Empty : collide;
 	}
 
-	public IsOnLeftSite(point: Vector2d, epsilon: number): boolean {
-		const direction = point.Sub(this.A);
-		return PrimitiveUtils.OrthogonalRight(this.U).Dot(direction) < epsilon;
+	public isOnLeftSite(point: Vector2d, epsilon: number): boolean {
+		const direction = point.sub(this.A);
+		return PrimitiveUtils.orthogonalRight(this.U).dot(direction) < epsilon;
 	}
 
-	public IsOnRightSite(point: Vector2d, epsilon: number): boolean {
-		const direction = point.Sub(this.A);
-		return PrimitiveUtils.OrthogonalRight(this.U).Dot(direction) > -epsilon;
+	public isOnRightSite(point: Vector2d, epsilon: number): boolean {
+		const direction = point.sub(this.A);
+		return PrimitiveUtils.orthogonalRight(this.U).dot(direction) > -epsilon;
 	}
 }

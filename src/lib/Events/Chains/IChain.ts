@@ -3,15 +3,15 @@ import Vertex from "../../Circular/Vertex";
 import ChainType from "./ChainType";
 
 export default interface IChain {
-	get PreviousEdge(): Edge;
+	get previousEdge(): Edge;
 
-	get NextEdge(): Edge;
+	get nextEdge(): Edge;
 
-	get PreviousVertex(): Vertex;
+	get previousVertex(): Vertex;
 
-	get NextVertex(): Vertex;
+	get nextVertex(): Vertex;
 
-	get CurrentVertex(): Vertex;
+	get currentVertex(): Vertex;
 
-	get ChainType(): ChainType;
+	get chainType(): ChainType;
 }

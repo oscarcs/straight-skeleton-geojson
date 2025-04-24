@@ -1,5 +1,6 @@
+import {MultiPolygon, Position} from "geojson";
 import {Skeleton} from "./Skeleton";
-import {HashSet, List, IComparer, Dictionary, GeoJSONMultipolygon} from "./Utils";
+import {HashSet, List, IComparer, Dictionary} from "./Utils";
 import Vector2d from "./Primitives/Vector2d";
 import PriorityQueue from "./Primitives/PriorityQueue";
 import Edge from "./Circular/Edge";
@@ -27,29 +28,29 @@ import EdgeResult from "./EdgeResult";
 import ChainType from "./Events/Chains/ChainType";
 
 export default class SkeletonBuilder {
-	private static readonly SplitEpsilon = 1e-10;
+	private static readonly SPLIT_EPSILON = 1e-10;
 
-	public static BuildFromGeoJSON(multipolygon: GeoJSONMultipolygon): Skeleton {
+	public static BuildFromGeoJSON(multipolygon: MultiPolygon): Skeleton {
 		const allEdges: List<EdgeResult> = new List();
 		const allDistances: Dictionary<Vector2d, number> = new Dictionary();
 
-		for (const polygon of multipolygon) {
+		for (const polygon of multipolygon.coordinates) {
 			if (polygon.length > 0) {
-				const outer = this.ListFromCoordinatesArray(polygon[0]);
+				const outer = this.listFromCoordinatesArray(polygon[0]);
 				const holes: List<List<Vector2d>> = new List();
 
 				for (let i = 1; i < polygon.length; i++) {
-					holes.Add(this.ListFromCoordinatesArray(polygon[i]));
+					holes.add(this.listFromCoordinatesArray(polygon[i]));
 				}
 
-				const skeleton = this.Build(outer, holes);
+				const skeleton = this.build(outer, holes);
 
-				for (const edge of skeleton.Edges) {
-					allEdges.Add(edge);
+				for (const edge of skeleton.edges) {
+					allEdges.add(edge);
 				}
 
-				for (const [key, distance] of skeleton.Distances.entries()) {
-					allDistances.Add(key, distance);
+				for (const [key, distance] of skeleton.distances.entries()) {
+					allDistances.add(key, distance);
 				}
 			}
 		}
@@ -57,271 +58,291 @@ export default class SkeletonBuilder {
 		return new Skeleton(allEdges, allDistances);
 	}
 
-	private static ListFromCoordinatesArray(arr: [number, number][]): List<Vector2d> {
+	private static listFromCoordinatesArray(position: Position[]): List<Vector2d> {
 		const list: List<Vector2d> = new List();
 
-		for (const [x, y] of arr) {
-			list.Add(new Vector2d(x, y));
+		for (const [x, y] of position) {
+			list.add(new Vector2d(x, y));
 		}
 
 		return list;
 	}
 
-	public static Build(polygon: List<Vector2d>, holes: List<List<Vector2d>> = null): Skeleton {
-		polygon = this.InitPolygon(polygon);
-		holes = this.MakeClockwise(holes);
+	public static build(polygon: List<Vector2d>, holes: List<List<Vector2d>> = null): Skeleton {
+		polygon = this.initPolygon(polygon);
+		holes = this.makeClockwise(holes);
 
 		const queue = new PriorityQueue<SkeletonEvent>(3, new SkeletonEventDistanseComparer());
 		const sLav = new HashSet<CircularList<Vertex>>();
 		const faces = new List<FaceQueue>();
 		const edges = new List<Edge>();
 
-		this.InitSlav(polygon, sLav, edges, faces);
+		this.initSlav(polygon, sLav, edges, faces);
 
 		if (holes !== null) {
 			for (const inner of holes) {
-				this.InitSlav(inner, sLav, edges, faces);
+				this.initSlav(inner, sLav, edges, faces);
 			}
 		}
 
-		this.InitEvents(sLav, queue, edges);
+		this.initEvents(sLav, queue, edges);
 
 		let count = 0;
-		while (!queue.Empty) {
-			count = this.AssertMaxNumberOfInteraction(count);
-			const levelHeight = queue.Peek().Distance;
+		while (!queue.empty) {
+			count = this.assertMaxNumberOfInteraction(count);
+			const levelHeight = queue.peek().distance;
 
-			for (const event of this.LoadAndGroupLevelEvents(queue)) {
-				if (event.IsObsolete)
+			for (const event of this.loadAndGroupLevelEvents(queue)) {
+				if (event.isObsolete) {
 					continue;
+				}
 
-				if (event instanceof EdgeEvent)
+				if (event instanceof EdgeEvent) {
 					throw new Error("All edge@events should be converted to MultiEdgeEvents for given level");
-				if (event instanceof SplitEvent)
+				}
+				if (event instanceof SplitEvent) {
 					throw new Error("All split events should be converted to MultiSplitEvents for given level");
-				if (event instanceof MultiSplitEvent)
-					this.MultiSplitEvent(<MultiSplitEvent>event, sLav, queue, edges);
-				else if (event instanceof PickEvent)
-					this.PickEvent(<PickEvent>event);
-				else if (event instanceof MultiEdgeEvent)
-					this.MultiEdgeEvent(<MultiEdgeEvent>event, queue, edges);
-				else
-					throw new Error("Unknown event type: " + event.GetType());
+				}
+				if (event instanceof MultiSplitEvent) {
+					this.multiSplitEvent(<MultiSplitEvent>event, sLav, queue, edges);
+				}
+				else if (event instanceof PickEvent) {
+					this.pickEvent(<PickEvent>event);
+				}
+				else if (event instanceof MultiEdgeEvent) {
+					this.multiEdgeEvent(<MultiEdgeEvent>event, queue, edges);
+				}
+				else {
+					throw new Error("Unknown event type: " + event.getType());
+				}
 			}
 
-			this.ProcessTwoNodeLavs(sLav);
-			this.RemoveEventsUnderHeight(queue, levelHeight);
-			this.RemoveEmptyLav(sLav);
+			this.processTwoNodeLavs(sLav);
+			this.removeEventsUnderHeight(queue, levelHeight);
+			this.removeEmptyLav(sLav);
 		}
 
-		return this.AddFacesToOutput(faces);
+		return this.addFacesToOutput(faces);
 	}
 
-	private static InitPolygon(polygon: List<Vector2d>): List<Vector2d> {
+	private static initPolygon(polygon: List<Vector2d>): List<Vector2d> {
 		if (polygon === null)
 			throw new Error("polygon can't be null");
 
-		if (polygon[0].Equals(polygon[polygon.Count - 1]))
+		if (polygon[0].equals(polygon[polygon.count - 1]))
 			throw new Error("polygon can't start and end with the same point");
 
-		return this.MakeCounterClockwise(polygon);
+		return this.makeCounterClockwise(polygon);
 	}
 
-	private static ProcessTwoNodeLavs(sLav: HashSet<CircularList<Vertex>>) {
+	private static processTwoNodeLavs(sLav: HashSet<CircularList<Vertex>>) {
 		for (const lav of sLav) {
 			if (lav.Size === 2) {
 				const first = lav.First();
-				const last = first.Next as Vertex;
+				const last = first.next as Vertex;
 
-				FaceQueueUtil.ConnectQueues(first.LeftFace, last.RightFace);
-				FaceQueueUtil.ConnectQueues(first.RightFace, last.LeftFace);
+				FaceQueueUtil.connectQueues(first.leftFace, last.rightFace);
+				FaceQueueUtil.connectQueues(first.rightFace, last.leftFace);
 
-				first.IsProcessed = true;
-				last.IsProcessed = true;
+				first.isProcessed = true;
+				last.isProcessed = true;
 
-				LavUtil.RemoveFromLav(first);
-				LavUtil.RemoveFromLav(last);
+				LavUtil.removeFromLav(first);
+				LavUtil.removeFromLav(last);
 			}
 		}
 	}
 
-	private static RemoveEmptyLav(sLav: HashSet<CircularList<Vertex>>) {
-		sLav.RemoveWhere(circularList => circularList.Size === 0);
+	private static removeEmptyLav(sLav: HashSet<CircularList<Vertex>>) {
+		sLav.removeWhere(circularList => circularList.Size === 0);
 	}
 
-	private static MultiEdgeEvent(event: MultiEdgeEvent, queue: PriorityQueue<SkeletonEvent>, edges: List<Edge>) {
-		const center = event.V;
-		const edgeList = event.Chain.EdgeList;
+	private static multiEdgeEvent(event: MultiEdgeEvent, queue: PriorityQueue<SkeletonEvent>, edges: List<Edge>) {
+		const center = event.v;
+		const edgeList = event.chain.edgeList;
 
-		const previousVertex = event.Chain.PreviousVertex;
-		previousVertex.IsProcessed = true;
+		const previousVertex = event.chain.previousVertex;
+		previousVertex.isProcessed = true;
 
-		const nextVertex = event.Chain.NextVertex;
-		nextVertex.IsProcessed = true;
+		const nextVertex = event.chain.nextVertex;
+		nextVertex.isProcessed = true;
 
-		const bisector = this.CalcBisector(center, previousVertex.PreviousEdge, nextVertex.NextEdge);
-		const edgeVertex = new Vertex(center, event.Distance, bisector, previousVertex.PreviousEdge,
-			nextVertex.NextEdge);
+		const bisector = this.calcBisector(center, previousVertex.previousEdge, nextVertex.nextEdge);
+		const edgeVertex = new Vertex(center, event.distance, bisector, previousVertex.previousEdge,
+			nextVertex.nextEdge);
 
-		this.AddFaceLeft(edgeVertex, previousVertex);
+		this.addFaceLeft(edgeVertex, previousVertex);
 
-		this.AddFaceRight(edgeVertex, nextVertex);
+		this.addFaceRight(edgeVertex, nextVertex);
 
-		previousVertex.AddPrevious(edgeVertex);
+		previousVertex.addPrevious(edgeVertex);
 
-		this.AddMultiBackFaces(edgeList, edgeVertex);
+		this.addMultiBackFaces(edgeList, edgeVertex);
 
-		this.ComputeEvents(edgeVertex, queue, edges);
+		this.computeEvents(edgeVertex, queue, edges);
 	}
 
-	private static AddMultiBackFaces(edgeList: List<EdgeEvent>, edgeVertex: Vertex) {
+	private static addMultiBackFaces(edgeList: List<EdgeEvent>, edgeVertex: Vertex) {
 		for (const edgeEvent of edgeList) {
-			const leftVertex = edgeEvent.PreviousVertex;
-			leftVertex.IsProcessed = true;
-			LavUtil.RemoveFromLav(leftVertex);
+			const leftVertex = edgeEvent.previousVertex;
+			leftVertex.isProcessed = true;
+			LavUtil.removeFromLav(leftVertex);
 
-			const rightVertex = edgeEvent.NextVertex;
-			rightVertex.IsProcessed = true;
-			LavUtil.RemoveFromLav(rightVertex);
+			const rightVertex = edgeEvent.nextVertex;
+			rightVertex.isProcessed = true;
+			LavUtil.removeFromLav(rightVertex);
 
-			this.AddFaceBack(edgeVertex, leftVertex, rightVertex);
+			this.addFaceBack(edgeVertex, leftVertex, rightVertex);
 		}
 	}
 
-	private static PickEvent(event: PickEvent) {
-		const center = event.V;
-		const edgeList = event.Chain.EdgeList;
+	private static pickEvent(event: PickEvent) {
+		const center = event.v;
+		const edgeList = event.chain.edgeList;
 
-		const vertex = new Vertex(center, event.Distance, LineParametric2d.Empty, null, null);
-		vertex.IsProcessed = true;
+		const vertex = new Vertex(center, event.distance, LineParametric2d.Empty, null, null);
+		vertex.isProcessed = true;
 
-		this.AddMultiBackFaces(edgeList, vertex);
+		this.addMultiBackFaces(edgeList, vertex);
 	}
 
-	private static MultiSplitEvent(event: MultiSplitEvent, sLav: HashSet<CircularList<Vertex>>, queue: PriorityQueue<SkeletonEvent>, edges: List<Edge>) {
-		const chains = event.Chains;
-		const center = event.V;
+	private static multiSplitEvent(event: MultiSplitEvent, sLav: HashSet<CircularList<Vertex>>, queue: PriorityQueue<SkeletonEvent>, edges: List<Edge>) {
+		const chains = event.chains;
+		const center = event.v;
 
-		this.CreateOppositeEdgeChains(sLav, chains, center);
+		this.createOppositeEdgeChains(sLav, chains, center);
 
-		chains.Sort(new ChainComparer(center));
+		chains.sort(new ChainComparer(center));
 
 		let lastFaceNode: FaceNode = null;
 
-		let edgeListSize = chains.Count;
+		let edgeListSize = chains.count;
 		for (let i = 0; i < edgeListSize; i++) {
 			const chainBegin = chains[i];
 			const chainEnd = chains[(i + 1) % edgeListSize];
 
-			const newVertex = this.CreateMultiSplitVertex(chainBegin.NextEdge, chainEnd.PreviousEdge, center, event.Distance);
+			const newVertex = this.createMultiSplitVertex(chainBegin.nextEdge, chainEnd.previousEdge, center, event.distance);
 
-			const beginNextVertex = chainBegin.NextVertex;
-			const endPreviousVertex = chainEnd.PreviousVertex;
+			const beginNextVertex = chainBegin.nextVertex;
+			const endPreviousVertex = chainEnd.previousVertex;
 
-			this.CorrectBisectorDirection(newVertex.Bisector, beginNextVertex, endPreviousVertex, chainBegin.NextEdge, chainEnd.PreviousEdge);
+			this.correctBisectorDirection(newVertex.bisector, beginNextVertex, endPreviousVertex, chainBegin.nextEdge, chainEnd.previousEdge);
 
-			if (LavUtil.IsSameLav(beginNextVertex, endPreviousVertex)) {
-				const lavPart = LavUtil.CutLavPart(beginNextVertex, endPreviousVertex);
+			if (LavUtil.isSameLav(beginNextVertex, endPreviousVertex)) {
+				const lavPart = LavUtil.cutLavPart(beginNextVertex, endPreviousVertex);
 
 				const lav = new CircularList<Vertex>();
-				sLav.Add(lav);
-				lav.AddLast(newVertex);
+				sLav.add(lav);
+				lav.addLast(newVertex);
 				for (const vertex of lavPart)
-					lav.AddLast(vertex);
+					lav.addLast(vertex);
 			} else {
-				LavUtil.MergeBeforeBaseVertex(beginNextVertex, endPreviousVertex);
-				endPreviousVertex.AddNext(newVertex);
+				LavUtil.mergeBeforeBaseVertex(beginNextVertex, endPreviousVertex);
+				endPreviousVertex.addNext(newVertex);
 			}
 
-			this.ComputeEvents(newVertex, queue, edges);
-			lastFaceNode = this.AddSplitFaces(lastFaceNode, chainBegin, chainEnd, newVertex);
+			this.computeEvents(newVertex, queue, edges);
+			lastFaceNode = this.addSplitFaces(lastFaceNode, chainBegin, chainEnd, newVertex);
 		}
 
-		edgeListSize = chains.Count;
+		edgeListSize = chains.count;
 		for (let i = 0; i < edgeListSize; i++) {
 			const chainBegin = chains[i];
 			const chainEnd = chains[(i + 1) % edgeListSize];
 
-			LavUtil.RemoveFromLav(chainBegin.CurrentVertex);
-			LavUtil.RemoveFromLav(chainEnd.CurrentVertex);
+			LavUtil.removeFromLav(chainBegin.currentVertex);
+			LavUtil.removeFromLav(chainEnd.currentVertex);
 
-			if (chainBegin.CurrentVertex !== null)
-				chainBegin.CurrentVertex.IsProcessed = true;
-			if (chainEnd.CurrentVertex !== null)
-				chainEnd.CurrentVertex.IsProcessed = true;
+			if (chainBegin.currentVertex !== null)
+				chainBegin.currentVertex.isProcessed = true;
+			if (chainEnd.currentVertex !== null)
+				chainEnd.currentVertex.isProcessed = true;
 		}
 	}
 
-	private static CorrectBisectorDirection(bisector: LineParametric2d, beginNextVertex: Vertex, endPreviousVertex: Vertex, beginEdge: Edge, endEdge: Edge) {
-		const beginEdge2 = beginNextVertex.PreviousEdge;
-		const endEdge2 = endPreviousVertex.NextEdge;
+	private static correctBisectorDirection(bisector: LineParametric2d, beginNextVertex: Vertex, endPreviousVertex: Vertex, beginEdge: Edge, endEdge: Edge) {
+		const beginEdge2 = beginNextVertex.previousEdge;
+		const endEdge2 = endPreviousVertex.nextEdge;
 
-		if (beginEdge !== beginEdge2 || endEdge !== endEdge2)
+		if (beginEdge !== beginEdge2 || endEdge !== endEdge2) {
 			throw new Error();
+		}
 
-		if (beginEdge.Norm.Dot(endEdge.Norm) < -0.97) {
-			const n1 = PrimitiveUtils.FromTo(endPreviousVertex.Point, bisector.A).Normalized();
-			const n2 = PrimitiveUtils.FromTo(bisector.A, beginNextVertex.Point).Normalized();
-			const bisectorPrediction = this.CalcVectorBisector(n1, n2);
+		if (beginEdge.norm.dot(endEdge.norm) < -0.97) {
+			const n1 = PrimitiveUtils.fromTo(endPreviousVertex.point, bisector.A).normalized();
+			const n2 = PrimitiveUtils.fromTo(bisector.A, beginNextVertex.point).normalized();
+			const bisectorPrediction = this.calcVectorBisector(n1, n2);
 
-			if (bisector.U.Dot(bisectorPrediction) < 0)
-				bisector.U.Negate();
+			if (bisector.U.dot(bisectorPrediction) < 0)
+				bisector.U.negate();
 		}
 	}
 
-	private static AddSplitFaces(lastFaceNode: FaceNode, chainBegin: IChain, chainEnd: IChain, newVertex: Vertex): FaceNode {
+	private static addSplitFaces(lastFaceNode: FaceNode, chainBegin: IChain, chainEnd: IChain, newVertex: Vertex): FaceNode {
 		if (chainBegin instanceof SingleEdgeChain) {
 			if (lastFaceNode === null) {
-				const beginVertex = this.CreateOppositeEdgeVertex(newVertex);
+				const beginVertex = this.createOppositeEdgeVertex(newVertex);
 
-				newVertex.RightFace = beginVertex.RightFace;
-				lastFaceNode = beginVertex.LeftFace;
-			} else {
-				if (newVertex.RightFace !== null)
+				newVertex.rightFace = beginVertex.rightFace;
+				lastFaceNode = beginVertex.leftFace;
+			}
+			else {
+				if (newVertex.rightFace !== null) {
 					throw new Error("newVertex.RightFace should be null");
+				}
 
-				newVertex.RightFace = lastFaceNode;
+				newVertex.rightFace = lastFaceNode;
 				lastFaceNode = null;
 			}
-		} else {
-			const beginVertex = chainBegin.CurrentVertex;
-			this.AddFaceRight(newVertex, beginVertex);
+		}
+		else {
+			const beginVertex = chainBegin.currentVertex;
+			this.addFaceRight(newVertex, beginVertex);
 		}
 
 		if (chainEnd instanceof SingleEdgeChain) {
 			if (lastFaceNode === null) {
-				const endVertex = this.CreateOppositeEdgeVertex(newVertex);
+				const endVertex = this.createOppositeEdgeVertex(newVertex);
 
-				newVertex.LeftFace = endVertex.LeftFace;
-				lastFaceNode = endVertex.LeftFace;
-			} else {
-				if (newVertex.LeftFace !== null)
+				newVertex.leftFace = endVertex.leftFace;
+				lastFaceNode = endVertex.leftFace;
+			}
+			else {
+				if (newVertex.leftFace !== null) {
 					throw new Error("newVertex.LeftFace should be null.");
-				newVertex.LeftFace = lastFaceNode;
+				}
+				newVertex.leftFace = lastFaceNode;
 
 				lastFaceNode = null;
 			}
-		} else {
-			const endVertex = chainEnd.CurrentVertex;
-			this.AddFaceLeft(newVertex, endVertex);
+		}
+		else {
+			const endVertex = chainEnd.currentVertex;
+			this.addFaceLeft(newVertex, endVertex);
 		}
 		return lastFaceNode;
 	}
 
-	private static CreateOppositeEdgeVertex(newVertex: Vertex): Vertex {
-		const vertex = new Vertex(newVertex.Point, newVertex.Distance, newVertex.Bisector, newVertex.PreviousEdge, newVertex.NextEdge);
+	private static createOppositeEdgeVertex(newVertex: Vertex): Vertex {
+		const vertex = new Vertex(
+			newVertex.point,
+			newVertex.distance,
+			newVertex.bisector,
+			newVertex.previousEdge,
+			newVertex.nextEdge
+		);
 
 		const fn = new FaceNode(vertex);
-		vertex.LeftFace = fn;
-		vertex.RightFace = fn;
+		vertex.leftFace = fn;
+		vertex.rightFace = fn;
 
 		const rightFace = new FaceQueue();
-		rightFace.AddFirst(fn);
+		rightFace.addFirst(fn);
 
 		return vertex;
 	}
 
-	private static CreateOppositeEdgeChains(sLav: HashSet<CircularList<Vertex>>, chains: List<IChain>, center: Vector2d) {
+	private static createOppositeEdgeChains(sLav: HashSet<CircularList<Vertex>>, chains: List<IChain>, center: Vector2d) {
 		const oppositeEdges = new HashSet<Edge>();
 
 		const oppositeEdgeChains = new List<IChain>();
@@ -332,46 +353,50 @@ export default class SkeletonBuilder {
 				const splitChain = <SplitChain>chain;
 				const oppositeEdge = splitChain.OppositeEdge;
 
-				if (oppositeEdge !== null && !oppositeEdges.Contains(oppositeEdge)) {
-					const nextVertex = this.FindOppositeEdgeLav(sLav, oppositeEdge, center);
+				if (oppositeEdge !== null && !oppositeEdges.contains(oppositeEdge)) {
+					const nextVertex = this.findOppositeEdgeLav(sLav, oppositeEdge, center);
 
-					if (nextVertex !== null)
-						oppositeEdgeChains.Add(new SingleEdgeChain(oppositeEdge, nextVertex));
-					else {
-						this.FindOppositeEdgeLav(sLav, oppositeEdge, center);
-						chainsForRemoval.Add(chain);
+					if (nextVertex !== null) {
+						oppositeEdgeChains.add(new SingleEdgeChain(oppositeEdge, nextVertex));
 					}
-					oppositeEdges.Add(oppositeEdge);
+					else {
+						this.findOppositeEdgeLav(sLav, oppositeEdge, center);
+						chainsForRemoval.add(chain);
+					}
+					oppositeEdges.add(oppositeEdge);
 				}
 			}
 		}
 
-		for (let chain of chainsForRemoval)
-			chains.Remove(chain);
+		for (let chain of chainsForRemoval) {
+			chains.remove(chain);
+		}
 
-		chains.AddRange(oppositeEdgeChains);
+		chains.addRange(oppositeEdgeChains);
 	}
 
-	private static CreateMultiSplitVertex(nextEdge: Edge, previousEdge: Edge, center: Vector2d, distance: number): Vertex {
-		const bisector = this.CalcBisector(center, previousEdge, nextEdge);
+	private static createMultiSplitVertex(nextEdge: Edge, previousEdge: Edge, center: Vector2d, distance: number): Vertex {
+		const bisector = this.calcBisector(center, previousEdge, nextEdge);
 		return new Vertex(center, distance, bisector, previousEdge, nextEdge);
 	}
 
-	private static CreateChains(cluster: List<SkeletonEvent>): List<IChain> {
+	private static createChains(cluster: List<SkeletonEvent>): List<IChain> {
 		const edgeCluster = new List<EdgeEvent>();
 		const splitCluster = new List<SplitEvent>();
 		const vertexEventsParents = new HashSet<Vertex>();
 
 		for (const skeletonEvent of cluster) {
-			if (skeletonEvent instanceof EdgeEvent)
-				edgeCluster.Add(<EdgeEvent>skeletonEvent);
+			if (skeletonEvent instanceof EdgeEvent) {
+				edgeCluster.add(<EdgeEvent>skeletonEvent);
+			}
 			else {
 				if (skeletonEvent instanceof VertexSplitEvent) {
 
-				} else if (skeletonEvent instanceof SplitEvent) {
+				}
+				else if (skeletonEvent instanceof SplitEvent) {
 					const splitEvent = <SplitEvent>skeletonEvent;
-					vertexEventsParents.Add(splitEvent.Parent);
-					splitCluster.Add(splitEvent);
+					vertexEventsParents.add(splitEvent.parent);
+					splitCluster.add(splitEvent);
 				}
 			}
 		}
@@ -379,68 +404,73 @@ export default class SkeletonBuilder {
 		for (let skeletonEvent of cluster) {
 			if (skeletonEvent instanceof VertexSplitEvent) {
 				const vertexEvent = <VertexSplitEvent>skeletonEvent;
-				if (!vertexEventsParents.Contains(vertexEvent.Parent)) {
-					vertexEventsParents.Add(vertexEvent.Parent);
-					splitCluster.Add(vertexEvent);
+				if (!vertexEventsParents.contains(vertexEvent.parent)) {
+					vertexEventsParents.add(vertexEvent.parent);
+					splitCluster.add(vertexEvent);
 				}
 			}
 		}
 
 		const edgeChains = new List<EdgeChain>();
 
-		while (edgeCluster.Count > 0)
-			edgeChains.Add(new EdgeChain(this.CreateEdgeChain(edgeCluster)));
+		while (edgeCluster.count > 0) {
+			edgeChains.add(new EdgeChain(this.createEdgeChain(edgeCluster)));
+		}
 
-		const chains = new List<IChain>(edgeChains.Count);
-		for (const edgeChain of edgeChains)
-			chains.Add(edgeChain);
+		const chains = new List<IChain>(edgeChains.count);
+		for (const edgeChain of edgeChains) {
+			chains.add(edgeChain);
+		}
 
 		splitEventLoop:
-			while (splitCluster.Any()) {
+			while (splitCluster.any()) {
 				const split = splitCluster[0];
-				splitCluster.RemoveAt(0);
+				splitCluster.removeAt(0);
 
 				for (const chain of edgeChains) {
-					if (this.IsInEdgeChain(split, chain))
+					if (this.isInEdgeChain(split, chain)) {
 						continue splitEventLoop; //goto splitEventLoop;
+					}
 				}
 
-				chains.Add(new SplitChain(split));
+				chains.add(new SplitChain(split));
 			}
 
 		return chains;
 	}
 
-	private static IsInEdgeChain(split: SplitEvent, chain: EdgeChain): boolean {
-		const splitParent = split.Parent;
-		const edgeList = chain.EdgeList;
+	private static isInEdgeChain(split: SplitEvent, chain: EdgeChain): boolean {
+		const splitParent = split.parent;
+		const edgeList = chain.edgeList;
 
-		return edgeList.Any(edgeEvent => edgeEvent.PreviousVertex === splitParent || edgeEvent.NextVertex === splitParent);
+		return edgeList.any(edgeEvent => edgeEvent.previousVertex === splitParent || edgeEvent.nextVertex === splitParent);
 	}
 
-	private static CreateEdgeChain(edgeCluster: List<EdgeEvent>): List<EdgeEvent> {
+	private static createEdgeChain(edgeCluster: List<EdgeEvent>): List<EdgeEvent> {
 		const edgeList = new List<EdgeEvent>();
 
-		edgeList.Add(edgeCluster[0]);
-		edgeCluster.RemoveAt(0);
+		edgeList.add(edgeCluster[0]);
+		edgeCluster.removeAt(0);
 
 		loop:
 			for (; ;) {
-				const beginVertex = edgeList[0].PreviousVertex;
-				const endVertex = edgeList[edgeList.Count - 1].NextVertex;
+				const beginVertex = edgeList[0].previousVertex;
+				const endVertex = edgeList[edgeList.count - 1].nextVertex;
 
-				for (let i = 0; i < edgeCluster.Count; i++) {
+				for (let i = 0; i < edgeCluster.count; i++) {
 					const edge = edgeCluster[i];
-					if (edge.PreviousVertex === endVertex) {
-						edgeCluster.RemoveAt(i);
-						edgeList.Add(edge);
+					if (edge.previousVertex === endVertex) {
+						edgeCluster.removeAt(i);
+						edgeList.add(edge);
+						
 						//goto loop;
 						continue loop;
 
 					}
-					if (edge.NextVertex === beginVertex) {
-						edgeCluster.RemoveAt(i);
-						edgeList.Insert(0, edge);
+					if (edge.nextVertex === beginVertex) {
+						edgeCluster.removeAt(i);
+						edgeList.insert(0, edge);
+						
 						//goto loop;
 						continue loop;
 					}
@@ -451,344 +481,370 @@ export default class SkeletonBuilder {
 		return edgeList;
 	}
 
-	private static RemoveEventsUnderHeight(queue: PriorityQueue<SkeletonEvent>, levelHeight: number) {
-		while (!queue.Empty) {
-			if (queue.Peek().Distance > levelHeight + this.SplitEpsilon)
+	private static removeEventsUnderHeight(queue: PriorityQueue<SkeletonEvent>, levelHeight: number) {
+		while (!queue.empty) {
+			if (queue.peek().distance > levelHeight + this.SPLIT_EPSILON) {
 				break;
-			queue.Next();
+			}
+			queue.next();
 		}
 	}
 
-	private static LoadAndGroupLevelEvents(queue: PriorityQueue<SkeletonEvent>): List<SkeletonEvent> {
-		const levelEvents = this.LoadLevelEvents(queue);
-		return this.GroupLevelEvents(levelEvents);
+	private static loadAndGroupLevelEvents(queue: PriorityQueue<SkeletonEvent>): List<SkeletonEvent> {
+		const levelEvents = this.loadLevelEvents(queue);
+		return this.groupLevelEvents(levelEvents);
 	}
 
-	private static GroupLevelEvents(levelEvents: List<SkeletonEvent>): List<SkeletonEvent> {
+	private static groupLevelEvents(levelEvents: List<SkeletonEvent>): List<SkeletonEvent> {
 		const ret = new List<SkeletonEvent>();
 
 		const parentGroup = new HashSet<Vertex>();
 
-		while (levelEvents.Count > 0) {
-			parentGroup.Clear();
+		while (levelEvents.count > 0) {
+			parentGroup.clear();
 
 			const event = levelEvents[0];
-			levelEvents.RemoveAt(0);
-			const eventCenter = event.V;
-			const distance = event.Distance;
+			levelEvents.removeAt(0);
+			const eventCenter = event.v;
+			const distance = event.distance;
 
-			this.AddEventToGroup(parentGroup, event);
+			this.addEventToGroup(parentGroup, event);
 
 			const cluster = new List<SkeletonEvent>();
-			cluster.Add(event);
+			cluster.add(event);
 
-			for (let j = 0; j < levelEvents.Count; j++) {
+			for (let j = 0; j < levelEvents.count; j++) {
 				const test = levelEvents[j];
 
-				if (this.IsEventInGroup(parentGroup, test)) {
+				if (this.isEventInGroup(parentGroup, test)) {
 					const item = levelEvents[j];
-					levelEvents.RemoveAt(j);
-					cluster.Add(item);
-					this.AddEventToGroup(parentGroup, test);
+					levelEvents.removeAt(j);
+					cluster.add(item);
+					this.addEventToGroup(parentGroup, test);
 					j--;
-				} else if (eventCenter.DistanceTo(test.V) < this.SplitEpsilon) {
+				}
+				else if (eventCenter.distanceTo(test.v) < this.SPLIT_EPSILON) {
 					const item = levelEvents[j];
-					levelEvents.RemoveAt(j);
-					cluster.Add(item);
-					this.AddEventToGroup(parentGroup, test);
+					levelEvents.removeAt(j);
+					cluster.add(item);
+					this.addEventToGroup(parentGroup, test);
 					j--;
 				}
 			}
 
-			ret.Add(this.CreateLevelEvent(eventCenter, distance, cluster));
+			ret.add(this.createLevelEvent(eventCenter, distance, cluster));
 		}
 		return ret;
 	}
 
-	private static IsEventInGroup(parentGroup: HashSet<Vertex>, event: SkeletonEvent): boolean {
-		if (event instanceof SplitEvent)
-			return parentGroup.Contains((<SplitEvent>event).Parent);
-		if (event instanceof EdgeEvent)
-			return parentGroup.Contains((<EdgeEvent>event).PreviousVertex)
-				|| parentGroup.Contains((<EdgeEvent>event).NextVertex);
+	private static isEventInGroup(parentGroup: HashSet<Vertex>, event: SkeletonEvent): boolean {
+		if (event instanceof SplitEvent) {
+			return parentGroup.contains((<SplitEvent>event).parent);
+		}
+		if (event instanceof EdgeEvent) {
+			return parentGroup.contains((<EdgeEvent>event).previousVertex) || parentGroup.contains((<EdgeEvent>event).nextVertex);
+		}
 		return false;
 	}
 
-	private static AddEventToGroup(parentGroup: HashSet<Vertex>, event: SkeletonEvent) {
-		if (event instanceof SplitEvent)
-			parentGroup.Add((<SplitEvent>event).Parent);
+	private static addEventToGroup(parentGroup: HashSet<Vertex>, event: SkeletonEvent) {
+		if (event instanceof SplitEvent) {
+			parentGroup.add((<SplitEvent>event).parent);
+		}
 		else if (event instanceof EdgeEvent) {
-			parentGroup.Add((<EdgeEvent>event).PreviousVertex);
-			parentGroup.Add((<EdgeEvent>event).NextVertex);
+			parentGroup.add((<EdgeEvent>event).previousVertex);
+			parentGroup.add((<EdgeEvent>event).nextVertex);
 		}
 	}
 
-	private static CreateLevelEvent(eventCenter: Vector2d, distance: number, eventCluster: List<SkeletonEvent>): SkeletonEvent {
-		const chains = this.CreateChains(eventCluster);
+	private static createLevelEvent(eventCenter: Vector2d, distance: number, eventCluster: List<SkeletonEvent>): SkeletonEvent {
+		const chains = this.createChains(eventCluster);
 
-		if (chains.Count === 1) {
+		if (chains.count === 1) {
 			const chain = chains[0];
-			if (chain.ChainType === ChainType.ClosedEdge)
+			if (chain.chainType === ChainType.ClosedEdge) {
 				return new PickEvent(eventCenter, distance, <EdgeChain>chain);
-			if (chain.ChainType === ChainType.Edge)
+			}
+			if (chain.chainType === ChainType.Edge) {
 				return new MultiEdgeEvent(eventCenter, distance, <EdgeChain>chain);
-			if (chain.ChainType === ChainType.Split)
+			}
+			if (chain.chainType === ChainType.Split) {
 				return new MultiSplitEvent(eventCenter, distance, chains);
+			}
 		}
 
-		if (chains.Any(chain => chain.ChainType === ChainType.ClosedEdge))
+		if (chains.any(chain => chain.chainType === ChainType.ClosedEdge)) {
 			throw new Error("Found closed chain of events for single point, but found more then one chain");
+		}
 		return new MultiSplitEvent(eventCenter, distance, chains);
 	}
 
-	private static LoadLevelEvents(queue: PriorityQueue<SkeletonEvent>): List<SkeletonEvent> {
+	private static loadLevelEvents(queue: PriorityQueue<SkeletonEvent>): List<SkeletonEvent> {
 		const level = new List<SkeletonEvent>();
 		let levelStart: SkeletonEvent;
 
 		do {
-			levelStart = queue.Empty ? null : queue.Next();
+			levelStart = queue.empty ? null : queue.next();
 		}
-		while (levelStart !== null && levelStart.IsObsolete);
+		while (levelStart !== null && levelStart.isObsolete);
 
 
-		if (levelStart === null || levelStart.IsObsolete)
+		if (levelStart === null || levelStart.isObsolete) {
 			return level;
+		}
 
-		const levelStartHeight = levelStart.Distance;
+		const levelStartHeight = levelStart.distance;
 
-		level.Add(levelStart);
+		level.add(levelStart);
 
 		let event: SkeletonEvent;
-		while ((event = queue.Peek()) !== null &&
-		Math.abs(event.Distance - levelStartHeight) < this.SplitEpsilon) {
-			const nextLevelEvent = queue.Next();
-			if (!nextLevelEvent.IsObsolete)
-				level.Add(nextLevelEvent);
+		while ((event = queue.peek()) !== null &&
+		Math.abs(event.distance - levelStartHeight) < this.SPLIT_EPSILON) {
+			const nextLevelEvent = queue.next();
+			if (!nextLevelEvent.isObsolete) {
+				level.add(nextLevelEvent);
+			}
 		}
 		return level;
 	}
 
-	private static AssertMaxNumberOfInteraction(count: number): number {
+	private static assertMaxNumberOfInteraction(count: number): number {
 		count++;
-		if (count > 10000)
-			throw new Error("Too many interaction: bug?");
+		if (count > 10000) {
+			throw new Error("Too many interactions: bug?");
+		}
 		return count;
 	}
 
-	private static MakeClockwise(holes: List<List<Vector2d>>): List<List<Vector2d>> {
-		if (holes === null)
+	private static makeClockwise(holes: List<List<Vector2d>>): List<List<Vector2d>> {
+		if (holes === null) {
 			return null;
+		}
 
-		const ret = new List<List<Vector2d>>(holes.Count);
+		const ret = new List<List<Vector2d>>(holes.count);
 		for (const hole of holes) {
-			if (PrimitiveUtils.IsClockwisePolygon(hole))
-				ret.Add(hole);
+			if (PrimitiveUtils.isClockwisePolygon(hole)) {
+				ret.add(hole);
+			}
 			else {
-				hole.Reverse();
-				ret.Add(hole);
+				hole.reverse();
+				ret.add(hole);
 			}
 		}
 		return ret;
 	}
 
-	private static MakeCounterClockwise(polygon: List<Vector2d>): List<Vector2d> {
-		return PrimitiveUtils.MakeCounterClockwise(polygon);
+	private static makeCounterClockwise(polygon: List<Vector2d>): List<Vector2d> {
+		return PrimitiveUtils.makeCounterClockwise(polygon);
 	}
 
-	private static InitSlav(polygon: List<Vector2d>, sLav: HashSet<CircularList<Vertex>>, edges: List<Edge>, faces: List<FaceQueue>) {
+	private static initSlav(polygon: List<Vector2d>, sLav: HashSet<CircularList<Vertex>>, edges: List<Edge>, faces: List<FaceQueue>) {
 		const edgesList = new CircularList<Edge>();
 
-		const size = polygon.Count;
+		const size = polygon.count;
 		for (let i = 0; i < size; i++) {
 			const j = (i + 1) % size;
-			edgesList.AddLast(new Edge(polygon[i], polygon[j]));
+			edgesList.addLast(new Edge(polygon[i], polygon[j]));
 		}
 
 		for (const edge of edgesList.Iterate()) {
-			const nextEdge = edge.Next as Edge;
-			const bisector = this.CalcBisector(edge.End, edge, nextEdge);
+			const nextEdge = edge.next as Edge;
+			const bisector = this.calcBisector(edge.end, edge, nextEdge);
 
-			edge.BisectorNext = bisector;
-			nextEdge.BisectorPrevious = bisector;
-			edges.Add(edge);
+			edge.bisectorNext = bisector;
+			nextEdge.bisectorPrevious = bisector;
+			edges.add(edge);
 		}
 
 		const lav = new CircularList<Vertex>();
-		sLav.Add(lav);
+		sLav.add(lav);
 
 		for (const edge of edgesList.Iterate()) {
-			const nextEdge = edge.Next as Edge;
-			const vertex = new Vertex(edge.End, 0, edge.BisectorNext, edge, nextEdge);
-			lav.AddLast(vertex);
+			const nextEdge = edge.next as Edge;
+			const vertex = new Vertex(edge.end, 0, edge.bisectorNext, edge, nextEdge);
+			lav.addLast(vertex);
 		}
 
 		for (const vertex of lav.Iterate()) {
-			const next = vertex.Next as Vertex;
+			const next = vertex.next as Vertex;
 			const rightFace = new FaceNode(vertex);
 
 			const faceQueue = new FaceQueue();
-			faceQueue.Edge = (vertex.NextEdge);
+			faceQueue.edge = (vertex.nextEdge);
 
-			faceQueue.AddFirst(rightFace);
-			faces.Add(faceQueue);
-			vertex.RightFace = rightFace;
+			faceQueue.addFirst(rightFace);
+			faces.add(faceQueue);
+			vertex.rightFace = rightFace;
 
 			const leftFace = new FaceNode(next);
-			rightFace.AddPush(leftFace);
-			next.LeftFace = leftFace;
+			rightFace.addPush(leftFace);
+			next.leftFace = leftFace;
 		}
 	}
 
-	private static AddFacesToOutput(faces: List<FaceQueue>): Skeleton {
+	private static addFacesToOutput(faces: List<FaceQueue>): Skeleton {
 		const edgeOutputs = new List<EdgeResult>();
 		const distances = new Dictionary<Vector2d, number>();
 
 		for (const face of faces) {
-			if (face.Size > 0) {
+			if (face.size > 0) {
 				const faceList = new List<Vector2d>();
 
-				for (const fn of face.Iterate()) {
-					const point = fn.Vertex.Point;
+				for (const fn of face.iterate()) {
+					const point = fn.vertex.point;
 
-					faceList.Add(point);
+					faceList.add(point);
 
-					if (!distances.ContainsKey(point))
-						distances.Add(point, fn.Vertex.Distance);
+					if (!distances.containsKey(point)) {	
+						distances.add(point, fn.vertex.distance);
+					}
 				}
 
-				edgeOutputs.Add(new EdgeResult(face.Edge, faceList));
+				edgeOutputs.add(new EdgeResult(face.edge, faceList));
 			}
 		}
 		return new Skeleton(edgeOutputs, distances);
 	}
 
-	private static InitEvents(sLav: HashSet<CircularList<Vertex>>, queue: PriorityQueue<SkeletonEvent>, edges: List<Edge>) {
+	private static initEvents(sLav: HashSet<CircularList<Vertex>>, queue: PriorityQueue<SkeletonEvent>, edges: List<Edge>) {
 		for (const lav of sLav) {
-			for (const vertex of lav.Iterate())
-				this.ComputeSplitEvents(vertex, edges, queue, -1);
+			for (const vertex of lav.Iterate()) {
+				this.computeSplitEvents(vertex, edges, queue, -1);
+			}
 		}
 
 		for (const lav of sLav) {
 			for (const vertex of lav.Iterate()) {
-				const nextVertex = vertex.Next as Vertex;
-				this.ComputeEdgeEvents(vertex, nextVertex, queue);
+				const nextVertex = vertex.next as Vertex;
+				this.computeEdgeEvents(vertex, nextVertex, queue);
 			}
 		}
 	}
 
-	private static ComputeSplitEvents(vertex: Vertex, edges: List<Edge>, queue: PriorityQueue<SkeletonEvent>, distanceSquared: number) {
-		const source = vertex.Point;
-		const oppositeEdges = this.CalcOppositeEdges(vertex, edges);
+	private static computeSplitEvents(vertex: Vertex, edges: List<Edge>, queue: PriorityQueue<SkeletonEvent>, distanceSquared: number) {
+		const source = vertex.point;
+		const oppositeEdges = this.calcOppositeEdges(vertex, edges);
 
 		for (const oppositeEdge of oppositeEdges) {
-			const point = oppositeEdge.Point;
+			const point = oppositeEdge.point;
 
-			if (Math.abs(distanceSquared - (-1)) > this.SplitEpsilon) {
-				if (source.DistanceSquared(point) > distanceSquared + this.SplitEpsilon) {
+			if (Math.abs(distanceSquared - (-1)) > this.SPLIT_EPSILON) {
+				if (source.distanceSquared(point) > distanceSquared + this.SPLIT_EPSILON) {
 					continue;
 				}
 			}
 
-			if (oppositeEdge.OppositePoint.NotEquals(Vector2d.Empty)) {
-				queue.Add(new VertexSplitEvent(point, oppositeEdge.Distance, vertex));
+			if (oppositeEdge.oppositePoint.notEquals(Vector2d.Empty)) {
+				queue.add(new VertexSplitEvent(point, oppositeEdge.distance, vertex));
 				continue;
 			}
-			queue.Add(new SplitEvent(point, oppositeEdge.Distance, vertex, oppositeEdge.OppositeEdge));
+			queue.add(new SplitEvent(point, oppositeEdge.distance, vertex, oppositeEdge.oppositeEdge));
 		}
 	}
 
-	private static ComputeEvents(vertex: Vertex, queue: PriorityQueue<SkeletonEvent>, edges: List<Edge>) {
-		const distanceSquared = this.ComputeCloserEdgeEvent(vertex, queue);
-		this.ComputeSplitEvents(vertex, edges, queue, distanceSquared);
+	private static computeEvents(vertex: Vertex, queue: PriorityQueue<SkeletonEvent>, edges: List<Edge>) {
+		const distanceSquared = this.computeCloserEdgeEvent(vertex, queue);
+		this.computeSplitEvents(vertex, edges, queue, distanceSquared);
 	}
 
-	private static ComputeCloserEdgeEvent(vertex: Vertex, queue: PriorityQueue<SkeletonEvent>): number {
-		const nextVertex = vertex.Next as Vertex;
-		const previousVertex = vertex.Previous as Vertex;
+	private static computeCloserEdgeEvent(vertex: Vertex, queue: PriorityQueue<SkeletonEvent>): number {
+		const nextVertex = vertex.next as Vertex;
+		const previousVertex = vertex.previous as Vertex;
 
-		const point = vertex.Point;
+		const point = vertex.point;
 
-		const point1 = this.ComputeIntersectionBisectors(vertex, nextVertex);
-		const point2 = this.ComputeIntersectionBisectors(previousVertex, vertex);
+		const point1 = this.computeIntersectionBisectors(vertex, nextVertex);
+		const point2 = this.computeIntersectionBisectors(previousVertex, vertex);
 
-		if (point1.Equals(Vector2d.Empty) && point2.Equals(Vector2d.Empty))
+		if (point1.equals(Vector2d.Empty) && point2.equals(Vector2d.Empty)) {
 			return -1;
+		}
 
 		let distance1 = Number.MAX_VALUE;
 		let distance2 = Number.MAX_VALUE;
 
-		if (point1.NotEquals(Vector2d.Empty))
-			distance1 = point.DistanceSquared(point1);
-		if (point2.NotEquals(Vector2d.Empty))
-			distance2 = point.DistanceSquared(point2);
+		if (point1.notEquals(Vector2d.Empty)) {	
+			distance1 = point.distanceSquared(point1);
+		}
+		if (point2.notEquals(Vector2d.Empty)) {
+			distance2 = point.distanceSquared(point2);
+		}
 
-		if (Math.abs(distance1 - this.SplitEpsilon) < distance2)
-			queue.Add(this.CreateEdgeEvent(point1, vertex, nextVertex));
-		if (Math.abs(distance2 - this.SplitEpsilon) < distance1)
-			queue.Add(this.CreateEdgeEvent(point2, previousVertex, vertex));
+		if (Math.abs(distance1 - this.SPLIT_EPSILON) < distance2) {
+			queue.add(this.createEdgeEvent(point1, vertex, nextVertex));
+		}
+		if (Math.abs(distance2 - this.SPLIT_EPSILON) < distance1) {
+			queue.add(this.createEdgeEvent(point2, previousVertex, vertex));
+		}
 
 		return distance1 < distance2 ? distance1 : distance2;
 	}
 
-	private static CreateEdgeEvent(point: Vector2d, previousVertex: Vertex, nextVertex: Vertex): SkeletonEvent {
-		return new EdgeEvent(point, this.CalcDistance(point, previousVertex.NextEdge), previousVertex, nextVertex);
+	private static createEdgeEvent(point: Vector2d, previousVertex: Vertex, nextVertex: Vertex): SkeletonEvent {
+		return new EdgeEvent(point, this.calcDistance(point, previousVertex.nextEdge), previousVertex, nextVertex);
 	}
 
-	private static ComputeEdgeEvents(previousVertex: Vertex, nextVertex: Vertex, queue: PriorityQueue<SkeletonEvent>) {
-		const point = this.ComputeIntersectionBisectors(previousVertex, nextVertex);
-		if (point.NotEquals(Vector2d.Empty))
-			queue.Add(this.CreateEdgeEvent(point, previousVertex, nextVertex));
+	private static computeEdgeEvents(previousVertex: Vertex, nextVertex: Vertex, queue: PriorityQueue<SkeletonEvent>) {
+		const point = this.computeIntersectionBisectors(previousVertex, nextVertex);
+		if (point.notEquals(Vector2d.Empty)) {
+			queue.add(this.createEdgeEvent(point, previousVertex, nextVertex));
+		}
 	}
 
-	private static CalcOppositeEdges(vertex: Vertex, edges: List<Edge>): List<SplitCandidate> {
+	private static calcOppositeEdges(vertex: Vertex, edges: List<Edge>): List<SplitCandidate> {
 		const ret = new List<SplitCandidate>();
 
 		for (const edgeEntry of edges) {
-			const edge = edgeEntry.LineLinear2d;
+			const edge = edgeEntry.lineLinear2d;
 
-			if (this.EdgeBehindBisector(vertex.Bisector, edge))
+			if (this.edgeBehindBisector(vertex.bisector, edge)) {
 				continue;
+			}
 
-			const candidatePoint = this.CalcCandidatePointForSplit(vertex, edgeEntry);
-			if (candidatePoint !== null)
-				ret.Add(candidatePoint);
+			const candidatePoint = this.calcCandidatePointForSplit(vertex, edgeEntry);
+			if (candidatePoint !== null) {
+				ret.add(candidatePoint);
+			}
 		}
 
-		ret.Sort(new SplitCandidateComparer());
+		ret.sort(new SplitCandidateComparer());
 		return ret;
 	}
 
-	private static EdgeBehindBisector(bisector: LineParametric2d, edge: LineLinear2d): boolean {
-		return LineParametric2d.Collide(bisector, edge, this.SplitEpsilon).Equals(Vector2d.Empty);
+	private static edgeBehindBisector(bisector: LineParametric2d, edge: LineLinear2d): boolean {
+		return LineParametric2d.collide(bisector, edge, this.SPLIT_EPSILON).equals(Vector2d.Empty);
 	}
 
-	private static CalcCandidatePointForSplit(vertex: Vertex, edge: Edge): SplitCandidate {
-		const vertexEdge = this.ChoseLessParallelVertexEdge(vertex, edge);
-		if (vertexEdge === null)
+	private static calcCandidatePointForSplit(vertex: Vertex, edge: Edge): SplitCandidate {
+		const vertexEdge = this.choseLessParallelVertexEdge(vertex, edge);
+		if (vertexEdge === null) {
 			return null;
+		}
 
-		const vertexEdteNormNegate = vertexEdge.Norm;
-		const edgesBisector = this.CalcVectorBisector(vertexEdteNormNegate, edge.Norm);
-		const edgesCollide = vertexEdge.LineLinear2d.Collide(edge.LineLinear2d);
+		const vertexEdteNormNegate = vertexEdge.norm;
+		const edgesBisector = this.calcVectorBisector(vertexEdteNormNegate, edge.norm);
+		const edgesCollide = vertexEdge.lineLinear2d.collide(edge.lineLinear2d);
 
-		if (edgesCollide.Equals(Vector2d.Empty))
+		if (edgesCollide.equals(Vector2d.Empty)) {
 			throw new Error("Ups this should not happen");
+		}
 
-		const edgesBisectorLine = new LineParametric2d(edgesCollide, edgesBisector).CreateLinearForm();
+		const edgesBisectorLine = new LineParametric2d(edgesCollide, edgesBisector).createLinearForm();
 
-		const candidatePoint = LineParametric2d.Collide(vertex.Bisector, edgesBisectorLine, this.SplitEpsilon);
+		const candidatePoint = LineParametric2d.collide(vertex.bisector, edgesBisectorLine, this.SPLIT_EPSILON);
 
-		if (candidatePoint.Equals(Vector2d.Empty))
+		if (candidatePoint.equals(Vector2d.Empty))
 			return null;
 
-		if (edge.BisectorPrevious.IsOnRightSite(candidatePoint, this.SplitEpsilon)
-			&& edge.BisectorNext.IsOnLeftSite(candidatePoint, this.SplitEpsilon)) {
-			const distance = this.CalcDistance(candidatePoint, edge);
+		if (edge.bisectorPrevious.isOnRightSite(candidatePoint, this.SPLIT_EPSILON) && edge.bisectorNext.isOnLeftSite(candidatePoint, this.SPLIT_EPSILON)) {
+			const distance = this.calcDistance(candidatePoint, edge);
 
-			if (edge.BisectorPrevious.IsOnLeftSite(candidatePoint, this.SplitEpsilon))
-				return new SplitCandidate(candidatePoint, distance, null, edge.Begin);
-			if (edge.BisectorNext.IsOnRightSite(candidatePoint, this.SplitEpsilon))
-				return new SplitCandidate(candidatePoint, distance, null, edge.Begin);
+			if (edge.bisectorPrevious.isOnLeftSite(candidatePoint, this.SPLIT_EPSILON)) {
+				return new SplitCandidate(candidatePoint, distance, null, edge.begin);
+			}
+			if (edge.bisectorNext.isOnRightSite(candidatePoint, this.SPLIT_EPSILON)) {
+				return new SplitCandidate(candidatePoint, distance, null, edge.begin);
+			}
 
 			return new SplitCandidate(candidatePoint, distance, edge, Vector2d.Empty);
 		}
@@ -796,148 +852,160 @@ export default class SkeletonBuilder {
 		return null;
 	}
 
-	private static ChoseLessParallelVertexEdge(vertex: Vertex, edge: Edge): Edge {
-		const edgeA = vertex.PreviousEdge;
-		const edgeB = vertex.NextEdge;
+	private static choseLessParallelVertexEdge(vertex: Vertex, edge: Edge): Edge {
+		const edgeA = vertex.previousEdge;
+		const edgeB = vertex.nextEdge;
 
 		let vertexEdge = edgeA;
 
-		const edgeADot = Math.abs(edge.Norm.Dot(edgeA.Norm));
-		const edgeBDot = Math.abs(edge.Norm.Dot(edgeB.Norm));
+		const edgeADot = Math.abs(edge.norm.dot(edgeA.norm));
+		const edgeBDot = Math.abs(edge.norm.dot(edgeB.norm));
 
-		if (edgeADot + edgeBDot >= 2 - this.SplitEpsilon)
+		if (edgeADot + edgeBDot >= 2 - this.SPLIT_EPSILON) {
 			return null;
+		}
 
-		if (edgeADot > edgeBDot)
+		if (edgeADot > edgeBDot) {
 			vertexEdge = edgeB;
+		}
 
 		return vertexEdge;
 	}
 
-	private static ComputeIntersectionBisectors(vertexPrevious: Vertex, vertexNext: Vertex): Vector2d {
-		const bisectorPrevious = vertexPrevious.Bisector;
-		const bisectorNext = vertexNext.Bisector;
+	private static computeIntersectionBisectors(vertexPrevious: Vertex, vertexNext: Vertex): Vector2d {
+		const bisectorPrevious = vertexPrevious.bisector;
+		const bisectorNext = vertexNext.bisector;
 
-		const intersectRays2d = PrimitiveUtils.IntersectRays2D(bisectorPrevious, bisectorNext);
+		const intersectRays2d = PrimitiveUtils.intersectRays2D(bisectorPrevious, bisectorNext);
 		const intersect = intersectRays2d.Intersect;
 
-		if (vertexPrevious.Point.Equals(intersect) || vertexNext.Point.Equals(intersect))
+		if (vertexPrevious.point.equals(intersect) || vertexNext.point.equals(intersect)) {
 			return Vector2d.Empty;
+		}
 
 		return intersect;
 	}
 
-	private static FindOppositeEdgeLav(sLav: HashSet<CircularList<Vertex>>, oppositeEdge: Edge, center: Vector2d): Vertex {
-		const edgeLavs = this.FindEdgeLavs(sLav, oppositeEdge, null);
-		return this.ChooseOppositeEdgeLav(edgeLavs, oppositeEdge, center);
+	private static findOppositeEdgeLav(sLav: HashSet<CircularList<Vertex>>, oppositeEdge: Edge, center: Vector2d): Vertex {
+		const edgeLavs = this.findEdgeLavs(sLav, oppositeEdge, null);
+		return this.chooseOppositeEdgeLav(edgeLavs, oppositeEdge, center);
 	}
 
-	private static ChooseOppositeEdgeLav(edgeLavs: List<Vertex>, oppositeEdge: Edge, center: Vector2d): Vertex {
-		if (!edgeLavs.Any())
+	private static chooseOppositeEdgeLav(edgeLavs: List<Vertex>, oppositeEdge: Edge, center: Vector2d): Vertex {
+		if (!edgeLavs.any()) {
 			return null;
+		}
 
-		if (edgeLavs.Count === 1)
+		if (edgeLavs.count === 1) {
 			return edgeLavs[0];
+		}
 
-		const edgeStart = oppositeEdge.Begin;
-		const edgeNorm = oppositeEdge.Norm;
-		const centerVector = center.Sub(edgeStart);
-		const centerDot = edgeNorm.Dot(centerVector);
+		const edgeStart = oppositeEdge.begin;
+		const edgeNorm = oppositeEdge.norm;
+		const centerVector = center.sub(edgeStart);
+		const centerDot = edgeNorm.dot(centerVector);
+		
 		for (const end of edgeLavs) {
-			const begin = end.Previous as Vertex;
+			const begin = end.previous as Vertex;
 
-			const beginVector = begin.Point.Sub(edgeStart);
-			const endVector = end.Point.Sub(edgeStart);
+			const beginVector = begin.point.sub(edgeStart);
+			const endVector = end.point.sub(edgeStart);
 
-			const beginDot = edgeNorm.Dot(beginVector);
-			const endDot = edgeNorm.Dot(endVector);
+			const beginDot = edgeNorm.dot(beginVector);
+			const endDot = edgeNorm.dot(endVector);
 
-			if (beginDot < centerDot && centerDot < endDot ||
-				beginDot > centerDot && centerDot > endDot)
+			if (beginDot < centerDot && centerDot < endDot || beginDot > centerDot && centerDot > endDot) {
 				return end;
+			}
 		}
 
 		for (const end of edgeLavs) {
-			const size = end.List.Size;
+			const size = end.list.Size;
 			const points = new List<Vector2d>(size);
 			let next = end;
 			for (let i = 0; i < size; i++) {
-				points.Add(next.Point);
-				next = next.Next as Vertex;
+				points.add(next.point);
+				next = next.next as Vertex;
 			}
-			if (PrimitiveUtils.IsPointInsidePolygon(center, points))
+			if (PrimitiveUtils.isPointInsidePolygon(center, points)) {
 				return end;
+			}
 		}
 		throw new Error("Could not find lav for opposite edge, it could be correct but need some test data to check.");
 	}
 
-	private static FindEdgeLavs(sLav: HashSet<CircularList<Vertex>>, oppositeEdge: Edge, skippedLav: CircularList<Vertex>): List<Vertex> {
+	private static findEdgeLavs(sLav: HashSet<CircularList<Vertex>>, oppositeEdge: Edge, skippedLav: CircularList<Vertex>): List<Vertex> {
 		const edgeLavs = new List<Vertex>();
 		for (const lav of sLav) {
-			if (lav === skippedLav)
+			if (lav === skippedLav) {
 				continue;
+			}
 
-			const vertexInLav = this.GetEdgeInLav(lav, oppositeEdge);
-			if (vertexInLav !== null)
-				edgeLavs.Add(vertexInLav);
+			const vertexInLav = this.getEdgeInLav(lav, oppositeEdge);
+			if (vertexInLav !== null) {
+				edgeLavs.add(vertexInLav);
+			}
 		}
 		return edgeLavs;
 	}
 
-	private static GetEdgeInLav(lav: CircularList<Vertex>, oppositeEdge: Edge): Vertex {
-		for (const node of lav.Iterate())
-			if (oppositeEdge === node.PreviousEdge ||
-				oppositeEdge === node.Previous.Next)
+	private static getEdgeInLav(lav: CircularList<Vertex>, oppositeEdge: Edge): Vertex {
+		for (const node of lav.Iterate()) {
+			if (oppositeEdge === node.previousEdge ||oppositeEdge === node.previous.next) {
 				return node;
+			}
+		}
 
 		return null;
 	}
 
-	private static AddFaceBack(newVertex: Vertex, va: Vertex, vb: Vertex) {
+	private static addFaceBack(newVertex: Vertex, va: Vertex, vb: Vertex) {
 		const fn = new FaceNode(newVertex);
-		va.RightFace.AddPush(fn);
-		FaceQueueUtil.ConnectQueues(fn, vb.LeftFace);
+		va.rightFace.addPush(fn);
+		FaceQueueUtil.connectQueues(fn, vb.leftFace);
 	}
 
-	private static AddFaceRight(newVertex: Vertex, vb: Vertex) {
+	private static addFaceRight(newVertex: Vertex, vb: Vertex) {
 		const fn = new FaceNode(newVertex);
-		vb.RightFace.AddPush(fn);
-		newVertex.RightFace = fn;
+		vb.rightFace.addPush(fn);
+		newVertex.rightFace = fn;
 	}
 
-	private static AddFaceLeft(newVertex: Vertex, va: Vertex) {
+	private static addFaceLeft(newVertex: Vertex, va: Vertex) {
 		const fn = new FaceNode(newVertex);
-		va.LeftFace.AddPush(fn);
-		newVertex.LeftFace = fn;
+		va.leftFace.addPush(fn);
+		newVertex.leftFace = fn;
 	}
 
-	private static CalcDistance(intersect: Vector2d, currentEdge: Edge): number {
-		const edge = currentEdge.End.Sub(currentEdge.Begin);
-		const vector = intersect.Sub(currentEdge.Begin);
+	private static calcDistance(intersect: Vector2d, currentEdge: Edge): number {
+		const edge = currentEdge.end.sub(currentEdge.begin);
+		const vector = intersect.sub(currentEdge.begin);
 
-		const pointOnVector = PrimitiveUtils.OrthogonalProjection(edge, vector);
-		return vector.DistanceTo(pointOnVector);
+		const pointOnVector = PrimitiveUtils.orthogonalProjection(edge, vector);
+		return vector.distanceTo(pointOnVector);
 	}
 
-	private static CalcBisector(p: Vector2d, e1: Edge, e2: Edge): LineParametric2d {
-		const norm1 = e1.Norm;
-		const norm2 = e2.Norm;
+	private static calcBisector(p: Vector2d, e1: Edge, e2: Edge): LineParametric2d {
+		const norm1 = e1.norm;
+		const norm2 = e2.norm;
 
-		const bisector = this.CalcVectorBisector(norm1, norm2);
+		const bisector = this.calcVectorBisector(norm1, norm2);
 		return new LineParametric2d(p, bisector);
 	}
 
-	private static CalcVectorBisector(norm1: Vector2d, norm2: Vector2d): Vector2d {
-		return PrimitiveUtils.BisectorNormalized(norm1, norm2);
+	private static calcVectorBisector(norm1: Vector2d, norm2: Vector2d): Vector2d {
+		return PrimitiveUtils.bisectorNormalized(norm1, norm2);
 	}
 }
 
 class SkeletonEventDistanseComparer implements IComparer<SkeletonEvent> {
-	public Compare(left: SkeletonEvent, right: SkeletonEvent): number {
-		if (left.Distance > right.Distance)
+	public compare(left: SkeletonEvent, right: SkeletonEvent): number {
+		if (left.distance > right.distance) {
 			return 1;
-		if (left.Distance < right.Distance)
+		}
+		if (left.distance < right.distance) {
 			return -1;
+		}
 
 		return 0;
 	}
@@ -950,45 +1018,48 @@ class ChainComparer implements IComparer<IChain> {
 		this._center = center;
 	}
 
-	public Compare(x: IChain, y: IChain): number {
-		if (x === y)
+	public compare(x: IChain, y: IChain): number {
+		if (x === y) {
 			return 0;
+		}
 
-		const angle1 = ChainComparer.Angle(this._center, x.PreviousEdge.Begin);
-		const angle2 = ChainComparer.Angle(this._center, y.PreviousEdge.Begin);
+		const angle1 = ChainComparer.angle(this._center, x.previousEdge.begin);
+		const angle2 = ChainComparer.angle(this._center, y.previousEdge.begin);
 
 		return angle1 > angle2 ? 1 : -1;
 	}
 
-	private static Angle(p0: Vector2d, p1: Vector2d): number {
-		const dx = p1.X - p0.X;
-		const dy = p1.Y - p0.Y;
+	private static angle(p0: Vector2d, p1: Vector2d): number {
+		const dx = p1.x - p0.x;
+		const dy = p1.y - p0.y;
 		return Math.atan2(dy, dx);
 	}
 }
 
 class SplitCandidateComparer implements IComparer<SplitCandidate> {
-	public Compare(left: SplitCandidate, right: SplitCandidate): number {
-		if (left.Distance > right.Distance)
+	public compare(left: SplitCandidate, right: SplitCandidate): number {
+		if (left.distance > right.distance) {
 			return 1;
-		if (left.Distance < right.Distance)
+		}
+		if (left.distance < right.distance) {
 			return -1;
+		}
 
 		return 0;
 	}
 }
 
 class SplitCandidate {
-	public readonly Distance: number;
-	public readonly OppositeEdge: Edge = null;
-	public readonly OppositePoint: Vector2d = null;
-	public readonly Point: Vector2d = null;
+	public readonly distance: number;
+	public readonly oppositeEdge: Edge = null;
+	public readonly oppositePoint: Vector2d = null;
+	public readonly point: Vector2d = null;
 
 	constructor(point: Vector2d, distance: number, oppositeEdge: Edge, oppositePoint: Vector2d) {
-		this.Point = point;
-		this.Distance = distance;
-		this.OppositeEdge = oppositeEdge;
-		this.OppositePoint = oppositePoint;
+		this.point = point;
+		this.distance = distance;
+		this.oppositeEdge = oppositeEdge;
+		this.oppositePoint = oppositePoint;
 	}
 }
 

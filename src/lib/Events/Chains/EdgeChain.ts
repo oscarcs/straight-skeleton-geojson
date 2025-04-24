@@ -7,34 +7,34 @@ import ChainType from "./ChainType";
 
 export default class EdgeChain implements IChain {
 	private readonly _closed: boolean;
-	public EdgeList: List<EdgeEvent>;
+	public edgeList: List<EdgeEvent>;
 
 	constructor(edgeList: List<EdgeEvent>) {
-		this.EdgeList = edgeList;
-		this._closed = this.PreviousVertex === this.NextVertex;
+		this.edgeList = edgeList;
+		this._closed = this.previousVertex === this.nextVertex;
 	}
 
-	public get PreviousEdge(): Edge {
-		return this.EdgeList[0].PreviousVertex.PreviousEdge;
+	public get previousEdge(): Edge {
+		return this.edgeList[0].previousVertex.previousEdge;
 	}
 
-	public get NextEdge(): Edge {
-		return this.EdgeList[this.EdgeList.Count - 1].NextVertex.NextEdge;
+	public get nextEdge(): Edge {
+		return this.edgeList[this.edgeList.count - 1].nextVertex.nextEdge;
 	}
 
-	public get PreviousVertex(): Vertex {
-		return this.EdgeList[0].PreviousVertex;
+	public get previousVertex(): Vertex {
+		return this.edgeList[0].previousVertex;
 	}
 
-	public get NextVertex(): Vertex {
-		return this.EdgeList[this.EdgeList.Count - 1].NextVertex;
+	public get nextVertex(): Vertex {
+		return this.edgeList[this.edgeList.count - 1].nextVertex;
 	}
 
-	public get CurrentVertex(): Vertex {
+	public get currentVertex(): Vertex {
 		return null;
 	}
 
-	public get ChainType(): ChainType {
+	public get chainType(): ChainType {
 		return this._closed ? ChainType.ClosedEdge : ChainType.Edge;
 	}
 }

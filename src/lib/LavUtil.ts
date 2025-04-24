@@ -2,55 +2,61 @@ import Vertex from "./Circular/Vertex";
 import {List} from "./Utils";
 import CircularList from "./Circular/CircularList";
 
+/**
+ * The algorithm computes and simulates the events by maintaining a set of circular Lists of Active Vertices (LAVs).
+ */
 export default class LavUtil {
-	public static IsSameLav(v1: Vertex, v2: Vertex): boolean {
-		if (v1.List === null || v2.List === null)
+	public static isSameLav(v1: Vertex, v2: Vertex): boolean {
+		if (v1.list === null || v2.list === null) {
 			return false;
-		return v1.List === v2.List;
+		}
+		return v1.list === v2.list;
 	}
 
-	public static RemoveFromLav(vertex: Vertex) {
-		if (vertex === null || vertex.List === null)
+	public static removeFromLav(vertex: Vertex) {
+		if (vertex === null || vertex.list === null) {
 			return;
-		vertex.Remove();
+		}
+		vertex.remove();
 	}
 
-	public static CutLavPart(startVertex: Vertex, endVertex: Vertex): List<Vertex> {
+	public static cutLavPart(startVertex: Vertex, endVertex: Vertex): List<Vertex> {
 		const ret = new List<Vertex>();
-		const size = startVertex.List.Size;
+		const size = startVertex.list.Size;
 		let next = startVertex;
 
 		for (let i = 0; i < size; i++) {
 			const current = next;
-			next = current.Next as Vertex;
-			current.Remove();
-			ret.Add(current);
+			next = current.next as Vertex;
+			current.remove();
+			ret.add(current);
 
-			if (current === endVertex)
+			if (current === endVertex) {
 				return ret;
+			}
 		}
 
 		throw new Error("End vertex can't be found in start vertex lav");
 	}
 
-	public static MergeBeforeBaseVertex(base: Vertex, merged: Vertex) {
-		const size = merged.List.Size;
+	public static mergeBeforeBaseVertex(base: Vertex, merged: Vertex) {
+		const size = merged.list.Size;
 
 		for (let i = 0; i < size; i++) {
-			const nextMerged = merged.Next as Vertex;
-			nextMerged.Remove();
+			const nextMerged = merged.next as Vertex;
+			nextMerged.remove();
 
-			base.AddPrevious(nextMerged);
+			base.addPrevious(nextMerged);
 		}
 	}
 
-	public static MoveAllVertexToLavEnd(vertex: Vertex, newLaw: CircularList<Vertex>) {
-		const size = vertex.List.Size;
+	public static moveAllVertexToLavEnd(vertex: Vertex, newLaw: CircularList<Vertex>) {
+		const size = vertex.list.Size;
 		for (let i = 0; i < size; i++) {
 			const ver = vertex;
-			vertex = vertex.Next as Vertex;
-			ver.Remove();
-			newLaw.AddLast(ver);
+			vertex = vertex.next as Vertex;
+			ver.remove();
+			newLaw.addLast(ver);
 		}
 	}
 }

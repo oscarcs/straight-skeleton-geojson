@@ -5,35 +5,35 @@ import Edge from "./Edge";
 import {FaceNode} from "../Path/FaceNode";
 
 export default class Vertex extends CircularNode {
-	readonly RoundDigitCount = 5;
+	readonly roundDigitCount = 5;
 
-	public Point: Vector2d = null;
-	public readonly Distance: number;
-	public readonly Bisector: LineParametric2d = null;
+	public point: Vector2d = null;
+	public readonly distance: number;
+	public readonly bisector: LineParametric2d = null;
 
-	public readonly NextEdge: Edge = null;
-	public readonly PreviousEdge: Edge = null;
+	public readonly nextEdge: Edge = null;
+	public readonly previousEdge: Edge = null;
 
-	public LeftFace: FaceNode = null;
-	public RightFace: FaceNode = null;
+	public leftFace: FaceNode = null;
+	public rightFace: FaceNode = null;
 
-	public IsProcessed: boolean;
+	public isProcessed: boolean;
 
 	constructor(point: Vector2d, distance: number, bisector: LineParametric2d, previousEdge: Edge, nextEdge: Edge) {
 		super();
 
-		this.Point = point;
-		this.Distance = +distance.toFixed(this.RoundDigitCount);
-		this.Bisector = bisector;
-		this.PreviousEdge = previousEdge;
-		this.NextEdge = nextEdge;
+		this.point = point;
+		this.distance = +distance.toFixed(this.roundDigitCount);
+		this.bisector = bisector;
+		this.previousEdge = previousEdge;
+		this.nextEdge = nextEdge;
 
-		this.IsProcessed = false;
+		this.isProcessed = false;
 	}
 
-	public ToString(): string {
-		return "Vertex [v=" + this.Point + ", IsProcessed=" + this.IsProcessed +
-			", Bisector=" + this.Bisector + ", PreviousEdge=" + this.PreviousEdge +
-			", NextEdge=" + this.NextEdge;
+	public override toString(): string {
+		return "Vertex [v=" + this.point + ", IsProcessed=" + this.isProcessed +
+			", Bisector=" + this.bisector + ", PreviousEdge=" + this.previousEdge +
+			", NextEdge=" + this.nextEdge;
 	}
 }

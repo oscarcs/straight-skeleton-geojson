@@ -14,32 +14,32 @@ export default class SplitChain implements IChain {
 
 	public get OppositeEdge(): Edge {
 		if (!(this._splitEvent instanceof VertexSplitEvent))
-			return this._splitEvent.OppositeEdge;
+			return this._splitEvent.oppositeEdge;
 
 		return null;
 	}
 
-	public get PreviousEdge(): Edge {
-		return this._splitEvent.Parent.PreviousEdge;
+	public get previousEdge(): Edge {
+		return this._splitEvent.parent.previousEdge;
 	}
 
-	public get NextEdge(): Edge {
-		return this._splitEvent.Parent.NextEdge;
+	public get nextEdge(): Edge {
+		return this._splitEvent.parent.nextEdge;
 	}
 
-	public get PreviousVertex(): Vertex {
-		return this._splitEvent.Parent.Previous as Vertex;
+	public get previousVertex(): Vertex {
+		return this._splitEvent.parent.previous as Vertex;
 	}
 
-	public get NextVertex(): Vertex {
-		return this._splitEvent.Parent.Next as Vertex;
+	public get nextVertex(): Vertex {
+		return this._splitEvent.parent.next as Vertex;
 	}
 
-	public get CurrentVertex(): Vertex {
-		return this._splitEvent.Parent;
+	public get currentVertex(): Vertex {
+		return this._splitEvent.parent;
 	}
 
-	public get ChainType(): ChainType {
+	public get chainType(): ChainType {
 		return ChainType.Split;
 	}
 }

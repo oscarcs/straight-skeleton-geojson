@@ -9,21 +9,19 @@ export interface IComparable<T> {
 }
 
 export interface IComparer<T> {
-	Compare(a: T, b: T): number;
+	compare(a: T, b: T): number;
 }
-
-export type GeoJSONMultipolygon = [number, number][][][];
 
 export class List<T> extends Array<T> {
 	constructor(capacity = 0) {
 		super();
 	}
 
-	public Add(item: T) {
+	public add(item: T) {
 		this.push(item);
 	}
 
-	public Insert(index: number, item: T) {
+	public insert(index: number, item: T) {
 		const newArr = insertInArray(this, index, item);
 
 		this.length = newArr.length;
@@ -33,19 +31,15 @@ export class List<T> extends Array<T> {
 		}
 	}
 
-	public Reverse() {
-		this.reverse();
-	}
-
-	public Clear() {
+	public clear() {
 		this.length = 0;
 	}
 
-	get Count(): number {
+	get count(): number {
 		return this.length;
 	}
 
-	public Any(filter?: (item: T) => boolean): boolean {
+	public any(filter?: (item: T) => boolean): boolean {
 		if (!filter) {
 			filter = T => true;
 		}
@@ -59,11 +53,11 @@ export class List<T> extends Array<T> {
 		return false;
 	}
 
-	public RemoveAt(index: number) {
+	public removeAt(index: number) {
 		this.splice(index, 1);
 	}
 
-	public Remove(itemToRemove: T) {
+	public remove(itemToRemove: T) {
 		const newArr = this.filter(item => item !== itemToRemove);
 
 		this.length = newArr.length;
@@ -73,61 +67,66 @@ export class List<T> extends Array<T> {
 		}
 	}
 
-	public AddRange(list: List<T>) {
+	public addRange(list: List<T>) {
 		for (const item of list) {
-			this.Add(item);
+			this.add(item);
 		}
 	}
 
-	public Sort(comparer: IComparer<T>) {
-		this.sort(comparer.Compare.bind(comparer));
+	public override sort(comparer: IComparer<T> | ((a: T, b: T) => number)): this {
+		if (typeof comparer !== 'function' && 'compare' in comparer) {
+			return super.sort(comparer.compare.bind(comparer));
+		}
+		else {
+			return super.sort(comparer as (a: T, b: T) => number);
+		}
 	}
 }
 
 export class HashSet<T> implements Iterable<T> {
-	private Set: Set<T>;
+	private set: Set<T>;
 
 	constructor() {
-		this.Set = new Set();
+		this.set = new Set();
 	}
 
-	public Add(item: T) {
-		this.Set.add(item);
+	public add(item: T) {
+		this.set.add(item);
 	}
 
-	public Remove(item: T) {
-		this.Set.delete(item);
+	public remove(item: T) {
+		this.set.delete(item);
 	}
 
-	public RemoveWhere(filter: (item: T) => boolean) {
-		for (const item of this.Set.values()) {
+	public removeWhere(filter: (item: T) => boolean) {
+		for (const item of this.set.values()) {
 			if (filter(item)) {
-				this.Set.delete(item);
+				this.set.delete(item);
 			}
 		}
 	}
 
-	public Contains(item: T): boolean {
-		return this.Set.has(item);
+	public contains(item: T): boolean {
+		return this.set.has(item);
 	}
 
-	public Clear() {
-		this.Set.clear();
+	public clear() {
+		this.set.clear();
 	}
 
 	public* [Symbol.iterator](): Generator<T> {
-		for (const item of this.Set.values()) {
+		for (const item of this.set.values()) {
 			yield item;
 		}
 	}
 }
 
 export class Dictionary<T1, T2> extends Map<T1, T2> {
-	public ContainsKey(key: T1): boolean {
+	public containsKey(key: T1): boolean {
 		return this.has(key);
 	}
 
-	public Add(key: T1, value: T2) {
+	public add(key: T1, value: T2) {
 		return this.set(key, value);
 	}
 }

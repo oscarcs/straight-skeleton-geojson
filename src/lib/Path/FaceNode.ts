@@ -3,22 +3,22 @@ import Vertex from "../Circular/Vertex";
 import FaceQueue from "./FaceQueue";
 
 export class FaceNode extends PathQueueNode<FaceNode> {
-	public readonly Vertex: Vertex = null;
+	public readonly vertex: Vertex = null;
 
 	constructor(vertex: Vertex) {
 		super();
-		this.Vertex = vertex;
+		this.vertex = vertex;
 	}
 
-	public get FaceQueue(): FaceQueue {
-		return <FaceQueue>this.List;
+	public get faceQueue(): FaceQueue {
+		return <FaceQueue>this.list;
 	}
 
-	public get IsQueueUnconnected(): boolean {
-		return this.FaceQueue.IsUnconnected;
+	public get isQueueUnconnected(): boolean {
+		return this.faceQueue.isUnconnected;
 	}
 
-	public QueueClose() {
-		this.FaceQueue.Close();
+	public queueClose() {
+		this.faceQueue.close();
 	}
 }

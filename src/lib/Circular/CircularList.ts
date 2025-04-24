@@ -3,87 +3,96 @@ import CircularNode from "./CircularNode";
 export interface ICircularList {
 	readonly Size: number;
 
-	AddNext(node: CircularNode, newNode: CircularNode): void;
+	addNext(node: CircularNode, newNode: CircularNode): void;
 
-	AddPrevious(node: CircularNode, newNode: CircularNode): void;
+	addPrevious(node: CircularNode, newNode: CircularNode): void;
 
-	AddLast(node: CircularNode): void;
+	addLast(node: CircularNode): void;
 
-	Remove(node: CircularNode): void;
+	remove(node: CircularNode): void;
 }
 
 export default class CircularList<T extends CircularNode> implements ICircularList {
 	private _first: T = null;
 	private _size: number = 0;
 
-	public AddNext(node: CircularNode, newNode: CircularNode) {
-		if (newNode.List !== null)
+	public addNext(node: CircularNode, newNode: CircularNode) {
+		if (newNode.list !== null) {
 			throw new Error("Node is already assigned to different list!");
+		}
 
-		newNode.List = this;
+		newNode.list = this;
 
-		newNode.Previous = node;
-		newNode.Next = node.Next;
+		newNode.previous = node;
+		newNode.next = node.next;
 
-		node.Next.Previous = newNode;
-		node.Next = newNode;
+		node.next.previous = newNode;
+		node.next = newNode;
 
 		this._size++;
 	}
 
-	AddPrevious(node: CircularNode, newNode: CircularNode) {
-		if (newNode.List !== null)
+	addPrevious(node: CircularNode, newNode: CircularNode) {
+		if (newNode.list !== null) {
 			throw new Error("Node is already assigned to different list!");
+		}
 
-		newNode.List = this;
+		newNode.list = this;
 
-		newNode.Previous = node.Previous;
-		newNode.Next = node;
+		newNode.previous = node.previous;
+		newNode.next = node;
 
-		node.Previous.Next = newNode;
-		node.Previous = newNode;
+		node.previous.next = newNode;
+		node.previous = newNode;
 
 		this._size++;
 	}
 
-	AddLast(node: CircularNode) {
-		if (node.List !== null)
+	addLast(node: CircularNode) {
+		if (node.list !== null) {
 			throw new Error("Node is already assigned to different list!");
+		}
 
 		if (this._first === null) {
 			this._first = node as T;
 
-			node.List = this;
-			node.Next = node;
-			node.Previous = node;
+			node.list = this;
+			node.next = node;
+			node.previous = node;
 
 			this._size++;
-		} else
-			this.AddPrevious(this._first, node);
+		}
+		else {
+			this.addPrevious(this._first, node);
+		}
 	}
 
-	Remove(node: CircularNode) {
-		if (node.List !== this)
+	remove(node: CircularNode) {
+		if (node.list !== this) {
 			throw new Error("Node is not assigned to this list!");
-
-		if (this._size <= 0)
-			throw new Error("List is empty can't remove!");
-
-		node.List = null;
-
-		if (this._size === 1)
-			this._first = null;
-
-		else {
-			if (this._first === node)
-				this._first = <T>this._first.Next;
-
-			node.Previous.Next = node.Next;
-			node.Next.Previous = node.Previous;
 		}
 
-		node.Previous = null;
-		node.Next = null;
+		if (this._size <= 0) {
+			throw new Error("List is empty can't remove!");
+		}
+
+		node.list = null;
+
+		if (this._size === 1) {
+			this._first = null;
+		}
+
+		else {
+			if (this._first === node) {
+				this._first = <T>this._first.next;
+			}
+
+			node.previous.next = node.next;
+			node.next.previous = node.previous;
+		}
+
+		node.previous = null;
+		node.next = null;
 
 		this._size--;
 	}
@@ -107,7 +116,7 @@ export default class CircularList<T extends CircularNode> implements ICircularLi
 				return;
 			}
 
-			current = <T>current.Next;
+			current = <T>current.next;
 		}
 	}
 }

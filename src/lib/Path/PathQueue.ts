@@ -1,103 +1,116 @@
 import PathQueueNode from "./PathQueueNode";
 
 export default class PathQueue<T extends PathQueueNode<T>> {
-	public Size: number = 0;
-	public First: PathQueueNode<T> = null;
+	public size: number = 0;
+	public first: PathQueueNode<T> = null;
 
-	public AddPush(node: PathQueueNode<T>, newNode: PathQueueNode<T>) {
-		if (newNode.List !== null)
+	public addPush(node: PathQueueNode<T>, newNode: PathQueueNode<T>) {
+		if (newNode.list !== null) {
 			throw new Error("Node is already assigned to different list!");
+		}
 
-		if (node.Next !== null && node.Previous !== null)
-			throw new Error("Can't push new node. Node is inside a Quere. " +
-				"New node can by added only at the end of queue.");
+		if (node.next !== null && node.previous !== null) {
+			throw new Error("Can't push new node. Node is inside a Queue. New node can by added only at the end of queue.");
+		}
 
-		newNode.List = this;
-		this.Size++;
+		newNode.list = this;
+		this.size++;
 
-		if (node.Next === null) {
-			newNode.Previous = node;
-			newNode.Next = null;
+		if (node.next === null) {
+			newNode.previous = node;
+			newNode.next = null;
 
-			node.Next = newNode;
-		} else {
-			newNode.Previous = null;
-			newNode.Next = node;
+			node.next = newNode;
+		}
+		else {
+			newNode.previous = null;
+			newNode.next = node;
 
-			node.Previous = newNode;
+			node.previous = newNode;
 		}
 	}
 
-	public AddFirst(node: T) {
-		if (node.List !== null)
+	public addFirst(node: T) {
+		if (node.list !== null) {
 			throw new Error("Node is already assigned to different list!");
+		}
 
-		if (this.First === null) {
-			this.First = node;
+		if (this.first === null) {
+			this.first = node;
 
-			node.List = this;
-			node.Next = null;
-			node.Previous = null;
+			node.list = this;
+			node.next = null;
+			node.previous = null;
 
-			this.Size++;
-		} else
-			throw new Error("First element already exist!");
+			this.size++;
+		}
+		else {
+			throw new Error("First element already exists!");
+		}
 	}
 
-	public Pop(node: PathQueueNode<T>): PathQueueNode<T> {
-		if (node.List !== this)
+	public pop(node: PathQueueNode<T>): PathQueueNode<T> {
+		if (node.list !== this) {
 			throw new Error("Node is not assigned to this list!");
+		}
 
-		if (this.Size <= 0)
-			throw new Error("List is empty can't remove!");
+		if (this.size <= 0) {
+			throw new Error("List is empty, can't remove!");
+		}
 
-		if (!node.IsEnd)
+		if (!node.isEnd) {
 			throw new Error("Can pop only from end of queue!");
+		}
 
-		node.List = null;
+		node.list = null;
 
 		let previous: PathQueueNode<T> = null;
 
-		if (this.Size === 1)
-			this.First = null;
+		if (this.size === 1) {
+			this.first = null;
+		}
 		else {
-			if (this.First === node) {
-				if (node.Next !== null)
-					this.First = node.Next;
-				else if (node.Previous !== null)
-					this.First = node.Previous;
-				else
+			if (this.first === node) {
+				if (node.next !== null) {
+					this.first = node.next;
+				}
+				else if (node.previous !== null) {
+					this.first = node.previous;
+				}
+				else {
 					throw new Error("Ups ?");
+				}
 			}
-			if (node.Next !== null) {
-				node.Next.Previous = null;
-				previous = node.Next;
-			} else if (node.Previous !== null) {
-				node.Previous.Next = null;
-				previous = node.Previous;
+			if (node.next !== null) {
+				node.next.previous = null;
+				previous = node.next;
+			}
+			else if (node.previous !== null) {
+				node.previous.next = null;
+				previous = node.previous;
 			}
 		}
 
-		node.Previous = null;
-		node.Next = null;
+		node.previous = null;
+		node.next = null;
 
-		this.Size--;
+		this.size--;
 
 		return previous;
 	}
 
-	public* Iterate(): Generator<T> {
-		let current: T = <T>(this.First !== null ? this.First.FindEnd() : null);
+	public* iterate(): Generator<T> {
+		let current: T = <T>(this.first !== null ? this.first.findEnd() : null);
 		let i = 0;
 
-		while (current !== null)
-		{
+		while (current !== null) {
 			yield current;
 
-			if (++i === this.Size)
+			if (++i === this.size) {
 				return;
+			}
 
-			current = <T>current.Next;
+			current = <T>current.next;
 		}
 	}
 }

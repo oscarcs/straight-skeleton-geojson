@@ -11,30 +11,30 @@ export default class SingleEdgeChain implements IChain {
 	constructor(oppositeEdge: Edge, nextVertex: Vertex) {
 		this._oppositeEdge = oppositeEdge;
 		this._nextVertex = nextVertex;
-		this._previousVertex = nextVertex.Previous as Vertex;
+		this._previousVertex = nextVertex.previous as Vertex;
 	}
 
-	public get PreviousEdge(): Edge {
+	public get previousEdge(): Edge {
 		return this._oppositeEdge;
 	}
 
-	public get NextEdge(): Edge {
+	public get nextEdge(): Edge {
 		return this._oppositeEdge;
 	}
 
-	public get PreviousVertex(): Vertex {
+	public get previousVertex(): Vertex {
 		return this._previousVertex;
 	}
 
-	public get NextVertex(): Vertex {
+	public get nextVertex(): Vertex {
 		return this._nextVertex;
 	}
 
-	public get CurrentVertex(): Vertex {
+	public get currentVertex(): Vertex {
 		return null;
 	}
 
-	public get ChainType(): ChainType {
+	public get chainType(): ChainType {
 		return ChainType.Split;
 	}
 }

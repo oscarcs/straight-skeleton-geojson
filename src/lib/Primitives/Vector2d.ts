@@ -1,61 +1,61 @@
 export default class Vector2d {
 	public static Empty: Vector2d = new Vector2d(Number.MIN_VALUE, Number.MIN_VALUE);
 
-	public X: number = 0;
-	public Y: number = 0;
+	public x: number = 0;
+	public y: number = 0;
 
 	constructor(x: number, y: number) {
-		this.X = x;
-		this.Y = y;
+		this.x = x;
+		this.y = y;
 	}
 
-	public Negate() {
-		this.X = -this.X;
-		this.Y = -this.Y;
+	public negate() {
+		this.x = -this.x;
+		this.y = -this.y;
 	}
 
-	public DistanceTo(var1: Vector2d): number {
-		const var2 = this.X - var1.X;
-		const var4 = this.Y - var1.Y;
+	public distanceTo(var1: Vector2d): number {
+		const var2 = this.x - var1.x;
+		const var4 = this.y - var1.y;
 		return Math.sqrt(var2 * var2 + var4 * var4);
 	}
 
-	public Normalized(): Vector2d {
-		const var1 = 1 / Math.sqrt(this.X * this.X + this.Y * this.Y);
-		return new Vector2d(this.X * var1, this.Y * var1);
+	public normalized(): Vector2d {
+		const var1 = 1 / Math.sqrt(this.x * this.x + this.y * this.y);
+		return new Vector2d(this.x * var1, this.y * var1);
 	}
 
-	public Dot(var1: Vector2d): number {
-		return this.X * var1.X + this.Y * var1.Y;
+	public dot(var1: Vector2d): number {
+		return this.x * var1.x + this.y * var1.y;
 	}
 
-	public DistanceSquared(var1: Vector2d): number {
-		const var2 = this.X - var1.X;
-		const var4 = this.Y - var1.Y;
+	public distanceSquared(var1: Vector2d): number {
+		const var2 = this.x - var1.x;
+		const var4 = this.y - var1.y;
 		return var2 * var2 + var4 * var4;
 	}
 
-	public Add(v: Vector2d): Vector2d {
-		return new Vector2d(this.X + v.X, this.Y + v.Y);
+	public add(v: Vector2d): Vector2d {
+		return new Vector2d(this.x + v.x, this.y + v.y);
 	}
 
-	public Sub(v: Vector2d): Vector2d {
-		return new Vector2d(this.X - v.X, this.Y - v.Y);
+	public sub(v: Vector2d): Vector2d {
+		return new Vector2d(this.x - v.x, this.y - v.y);
 	}
 
-	public MultiplyScalar(scale: number): Vector2d {
-		return new Vector2d(this.X * scale, this.Y * scale);
+	public multiplyScalar(scale: number): Vector2d {
+		return new Vector2d(this.x * scale, this.y * scale);
 	}
 
-	public Equals(v: Vector2d): boolean {
-		return this.X === v.X && this.Y === v.Y;
+	public equals(v: Vector2d): boolean {
+		return this.x === v.x && this.y === v.y;
 	}
 
-	public NotEquals(v: Vector2d): boolean {
-		return !this.Equals(v);
+	public notEquals(v: Vector2d): boolean {
+		return !this.equals(v);
 	}
 
-	public ToString(): string {
-		return `${this.X}, ${this.Y}`;
+	public toString(): string {
+		return `${this.x}, ${this.y}`;
 	}
 }

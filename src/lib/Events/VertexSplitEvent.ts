@@ -7,9 +7,9 @@ export default class VertexSplitEvent extends SplitEvent {
 		super(point, distance, parent, null);
 	}
 
-	public override ToString(): string {
-		return "VertexSplitEvent [V=" + this.V + ", Parent=" +
-			(this.Parent !== null ? this.Parent.Point.ToString() : "null")
-			+ ", Distance=" + this.Distance + "]";
+	public override toString(): string {
+		return "VertexSplitEvent [V=" + this.v + ", Parent=" +
+			(this.parent !== null ? this.parent.point.toString() : "null")
+			+ ", Distance=" + this.distance + "]";
 	}
 }

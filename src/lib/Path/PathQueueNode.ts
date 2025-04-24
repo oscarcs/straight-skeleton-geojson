@@ -1,20 +1,20 @@
 import PathQueue from "./PathQueue";
 
 export default class PathQueueNode<T extends PathQueueNode<T>> {
-	public List: PathQueue<T> = null;
-	public Next: PathQueueNode<T> = null;
-	public Previous: PathQueueNode<T> = null;
+	public list: PathQueue<T> = null;
+	public next: PathQueueNode<T> = null;
+	public previous: PathQueueNode<T> = null;
 
-	public get IsEnd(): boolean {
-		return this.Next === null || this.Previous === null;
+	public get isEnd(): boolean {
+		return this.next === null || this.previous === null;
 	}
 
-	public AddPush(node: PathQueueNode<T>) {
-		this.List.AddPush(this, node);
+	public addPush(node: PathQueueNode<T>) {
+		this.list.addPush(this, node);
 	}
 
-	public AddQueue(queue: PathQueueNode<T>): PathQueueNode<T> {
-		if (this.List === queue.List)
+	public addQueue(queue: PathQueueNode<T>): PathQueueNode<T> {
+		if (this.list === queue.list)
 			return null;
 
 		let currentQueue: PathQueueNode<T> = this;
@@ -22,9 +22,9 @@ export default class PathQueueNode<T extends PathQueueNode<T>> {
 		let current = queue;
 
 		while (current !== null) {
-			const next = current.Pop();
+			const next = current.pop();
 
-			currentQueue.AddPush(current);
+			currentQueue.addPush(current);
 			currentQueue = current;
 
 			current = next;
@@ -33,19 +33,21 @@ export default class PathQueueNode<T extends PathQueueNode<T>> {
 		return currentQueue;
 	}
 
-	public FindEnd(): PathQueueNode<T> {
-		if (this.IsEnd)
+	public findEnd(): PathQueueNode<T> {
+		if (this.isEnd) {
 			return this;
+		}
 
 		let current: PathQueueNode<T> = this;
 
-		while (current.Previous !== null)
-			current = current.Previous;
+		while (current.previous !== null) {
+			current = current.previous;
+		}
 
 		return current;
 	}
 
-	public Pop(): PathQueueNode<T> {
-		return this.List.Pop(this);
+	public pop(): PathQueueNode<T> {
+		return this.list.pop(this);
 	}
 }
