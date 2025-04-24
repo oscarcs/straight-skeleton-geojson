@@ -3,7 +3,10 @@
   "version": "0.0.1",
   "description": "Geojson based implementation of the straight skeleton algorithm.",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "prepare": "npm run build",
+    "build": "tsc"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/oscarcs/straight-skeleton-geojson.git"
