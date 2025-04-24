@@ -30,6 +30,11 @@ import ChainType from "./Events/Chains/ChainType";
 export default class SkeletonBuilder {
 	private static readonly SPLIT_EPSILON = 1e-10;
 
+	/**
+	 * Builds a skeleton from a GeoJSON MultiPolygon.
+	 * @param multipolygon 
+	 * @returns Skeleton
+	 */
 	public static buildFromGeoJSON(multipolygon: MultiPolygon): Skeleton {
 		const allEdges: List<EdgeResult> = new List();
 		const allDistances: Dictionary<Vector2d, number> = new Dictionary();
@@ -68,6 +73,12 @@ export default class SkeletonBuilder {
 		return list;
 	}
 
+	/**
+	 * Build a skeleton from a polygon and an optional list of holes.
+	 * @param polygon 
+	 * @param holes 
+	 * @returns Skeleton
+	 */
 	public static build(polygon: List<Vector2d>, holes: List<List<Vector2d>> = null): Skeleton {
 		polygon = this.initPolygon(polygon);
 		holes = this.makeClockwise(holes);
