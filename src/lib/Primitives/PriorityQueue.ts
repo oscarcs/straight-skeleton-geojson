@@ -1,6 +1,6 @@
 import {IComparer, List} from "../Utils";
 
-export default class PriorityQueue<T> {
+export class PriorityQueue<T> {
 	private readonly _comparer: IComparer<T> = null;
 	private readonly _heap: List<T> = null;
 

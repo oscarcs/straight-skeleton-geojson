@@ -1,8 +1,8 @@
-import SkeletonEvent from "./SkeletonEvent";
-import Vector2d from "../Primitives/Vector2d";
-import EdgeChain from "./Chains/EdgeChain";
+import {SkeletonEvent} from "./SkeletonEvent";
+import {Vector2d} from "../Primitives/Vector2d";
+import {EdgeChain} from "./Chains/EdgeChain";
 
-export default class PickEvent extends SkeletonEvent {
+export class PickEvent extends SkeletonEvent {
 	public readonly chain: EdgeChain;
 
 	public override get isObsolete(): boolean {

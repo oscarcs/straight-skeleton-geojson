@@ -1,9 +1,9 @@
-import PathQueue from "./PathQueue";
+import {PathQueue} from "./PathQueue";
 import {FaceNode} from "./FaceNode";
-import PathQueueNode from "./PathQueueNode";
-import Edge from "../Circular/Edge";
+import {PathQueueNode} from "./PathQueueNode";
+import {Edge} from "../Circular/Edge";
 
-export default class FaceQueue extends PathQueue<FaceNode> {
+export class FaceQueue extends PathQueue<FaceNode> {
 	public edge: Edge = null;
 	public closed: boolean = false;
 

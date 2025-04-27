@@ -1,4 +1,4 @@
-import CircularNode from "./CircularNode";
+import {CircularNode} from "./CircularNode";
 
 export interface ICircularList {
 	readonly Size: number;
@@ -12,7 +12,7 @@ export interface ICircularList {
 	remove(node: CircularNode): void;
 }
 
-export default class CircularList<T extends CircularNode> implements ICircularList {
+export class CircularList<T extends CircularNode> implements ICircularList {
 	private _first: T = null;
 	private _size: number = 0;
 

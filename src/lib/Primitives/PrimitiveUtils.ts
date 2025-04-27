@@ -1,5 +1,5 @@
-import Vector2d from "./Vector2d";
-import LineParametric2d from "./LineParametric2d";
+import {Vector2d} from "./Vector2d";
+import {LineParametric2d} from "./LineParametric2d";
 import {List} from "../Utils";
 
 class IntersectPoints {
@@ -20,7 +20,7 @@ class IntersectPoints {
 	}
 }
 
-export default class PrimitiveUtils {
+export class PrimitiveUtils {
 	public static fromTo(begin: Vector2d, end: Vector2d): Vector2d {
 		return new Vector2d(end.x - begin.x, end.y - begin.y);
 	}

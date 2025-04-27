@@ -1,6 +1,6 @@
-import PathQueue from "./PathQueue";
+import {PathQueue} from "./PathQueue";
 
-export default class PathQueueNode<T extends PathQueueNode<T>> {
+export class PathQueueNode<T extends PathQueueNode<T>> {
 	public list: PathQueue<T> = null;
 	public next: PathQueueNode<T> = null;
 	public previous: PathQueueNode<T> = null;

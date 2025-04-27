@@ -1,11 +1,11 @@
-import Vertex from "./Circular/Vertex";
+import {Vertex} from "./Circular/Vertex";
 import {List} from "./Utils";
-import CircularList from "./Circular/CircularList";
+import {CircularList} from "./Circular/CircularList";
 
 /**
  * The algorithm computes and simulates the events by maintaining a set of circular Lists of Active Vertices (LAVs).
  */
-export default class LavUtil {
+export class LavUtil {
 	public static isSameLav(v1: Vertex, v2: Vertex): boolean {
 		if (v1.list === null || v2.list === null) {
 			return false;

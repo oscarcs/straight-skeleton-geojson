@@ -1,6 +1,6 @@
 import {ICircularList} from "./CircularList";
 
-export default class CircularNode {
+export class CircularNode {
 	public list: ICircularList = null;
 	public next: CircularNode = null;
 	public previous: CircularNode = null;

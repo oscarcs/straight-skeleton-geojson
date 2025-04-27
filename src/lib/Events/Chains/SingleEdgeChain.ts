@@ -1,9 +1,9 @@
-import IChain from "./IChain";
-import Edge from "../../Circular/Edge";
-import Vertex from "../../Circular/Vertex";
-import ChainType from "./ChainType";
+import {IChain} from "./IChain";
+import {Edge} from "../../Circular/Edge";
+import {Vertex} from "../../Circular/Vertex";
+import {ChainType} from "./ChainType";
 
-export default class SingleEdgeChain implements IChain {
+export class SingleEdgeChain implements IChain {
 	private readonly _nextVertex: Vertex;
 	private readonly _oppositeEdge: Edge;
 	private readonly _previousVertex: Vertex;

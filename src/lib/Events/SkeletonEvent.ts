@@ -1,6 +1,6 @@
-import Vector2d from "../Primitives/Vector2d";
+import {Vector2d} from "../Primitives/Vector2d";
 
-export default abstract class SkeletonEvent {
+export abstract class SkeletonEvent {
 	public v: Vector2d = null;
 	public distance: number;
 

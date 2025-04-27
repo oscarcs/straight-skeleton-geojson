@@ -1,8 +1,8 @@
-import Edge from "../../Circular/Edge";
-import Vertex from "../../Circular/Vertex";
-import ChainType from "./ChainType";
+import {Edge} from "../../Circular/Edge";
+import {Vertex} from "../../Circular/Vertex";
+import {ChainType} from "./ChainType";
 
-export default interface IChain {
+export interface IChain {
 	get previousEdge(): Edge;
 
 	get nextEdge(): Edge;

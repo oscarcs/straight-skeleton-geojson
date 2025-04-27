@@ -1,6 +1,6 @@
 import {FaceNode} from "./FaceNode";
 
-export default class FaceQueueUtil {
+export class FaceQueueUtil {
 	public static connectQueues(firstFace: FaceNode, secondFace: FaceNode) {
 		if (firstFace.list === null) {
 			throw new Error("firstFace.list cannot be null.");

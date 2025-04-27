@@ -1,11 +1,11 @@
-import IChain from "./IChain";
-import EdgeEvent from "../EdgeEvent";
+import {IChain} from "./IChain";
+import {EdgeEvent} from "../EdgeEvent";
 import {List} from "../../Utils";
-import Edge from "../../Circular/Edge";
-import Vertex from "../../Circular/Vertex";
-import ChainType from "./ChainType";
+import {Edge} from "../../Circular/Edge";
+import {Vertex} from "../../Circular/Vertex";
+import {ChainType} from "./ChainType";
 
-export default class EdgeChain implements IChain {
+export class EdgeChain implements IChain {
 	private readonly _closed: boolean;
 	public edgeList: List<EdgeEvent>;
 

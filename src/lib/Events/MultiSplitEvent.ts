@@ -1,9 +1,9 @@
-import SkeletonEvent from "./SkeletonEvent";
+import {SkeletonEvent} from "./SkeletonEvent";
 import {List} from "../Utils";
-import IChain from "./Chains/IChain";
-import Vector2d from "../Primitives/Vector2d";
+import {IChain} from "./Chains/IChain";
+import {Vector2d} from "../Primitives/Vector2d";
 
-export default class MultiSplitEvent extends SkeletonEvent {
+export class MultiSplitEvent extends SkeletonEvent {
 	public readonly chains: List<IChain>;
 
 	public override get isObsolete(): boolean {

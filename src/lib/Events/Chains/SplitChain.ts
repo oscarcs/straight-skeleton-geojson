@@ -1,11 +1,11 @@
-import IChain from "./IChain";
-import Edge from "../../Circular/Edge";
-import Vertex from "../../Circular/Vertex";
-import ChainType from "./ChainType";
-import VertexSplitEvent from "../VertexSplitEvent";
-import SplitEvent from "../SplitEvent";
+import {IChain} from "./IChain";
+import {Edge} from "../../Circular/Edge";
+import {Vertex} from "../../Circular/Vertex";
+import {ChainType} from "./ChainType";
+import {VertexSplitEvent} from "../VertexSplitEvent";
+import {SplitEvent} from "../SplitEvent";
 
-export default class SplitChain implements IChain {
+export class SplitChain implements IChain {
 	private readonly _splitEvent: SplitEvent;
 
 	constructor(event: SplitEvent) {

@@ -1,6 +1,6 @@
-import Vector2d from "./Vector2d";
+import {Vector2d} from "./Vector2d";
 
-export default class LineLinear2d {
+export class LineLinear2d {
 	public A: number;
 	public B: number;
 	public C: number;

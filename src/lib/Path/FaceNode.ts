@@ -1,6 +1,6 @@
-import PathQueueNode from "./PathQueueNode";
-import Vertex from "../Circular/Vertex";
-import FaceQueue from "./FaceQueue";
+import {PathQueueNode} from "./PathQueueNode";
+import {Vertex} from "../Circular/Vertex";
+import {FaceQueue} from "./FaceQueue";
 
 export class FaceNode extends PathQueueNode<FaceNode> {
 	public readonly vertex: Vertex = null;

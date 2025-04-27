@@ -1,8 +1,8 @@
-import SkeletonEvent from "./SkeletonEvent";
-import Vertex from "../Circular/Vertex";
-import Vector2d from "../Primitives/Vector2d";
+import {SkeletonEvent} from "./SkeletonEvent";
+import {Vertex} from "../Circular/Vertex";
+import {Vector2d} from "../Primitives/Vector2d";
 
-export default class EdgeEvent extends SkeletonEvent {
+export class EdgeEvent extends SkeletonEvent {
 	public readonly nextVertex: Vertex;
 	public readonly previousVertex: Vertex;
 
