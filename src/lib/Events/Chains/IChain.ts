@@ -1,5 +1,5 @@
-import {Edge} from "../../Circular/Edge";
-import {Vertex} from "../../Circular/Vertex";
+import {Edge} from "../../circular/Edge";
+import {Vertex} from "../../circular/Vertex";
 import {ChainType} from "./ChainType";
 
 export interface IChain {

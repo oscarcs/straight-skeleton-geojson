@@ -1,5 +1,5 @@
-import {Edge} from "./Circular/Edge";
-import {Vector2d} from "./Primitives/Vector2d";
+import {Edge} from "./circular/Edge";
+import {Vector2d} from "./primitives/Vector2d";
 import {List} from "./Utils";
 
 export class EdgeResult {

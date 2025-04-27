@@ -1,7 +1,7 @@
 import {CircularNode} from "./CircularNode";
-import {Vector2d} from "../Primitives/Vector2d";
-import {LineLinear2d} from "../Primitives/LineLinear2d";
-import {LineParametric2d} from "../Primitives/LineParametric2d";
+import {Vector2d} from "../primitives/Vector2d";
+import {LineLinear2d} from "../primitives/LineLinear2d";
+import {LineParametric2d} from "../primitives/LineParametric2d";
 
 export class Edge extends CircularNode {
 	public readonly begin: Vector2d;

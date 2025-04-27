@@ -1,4 +1,4 @@
-import {Vector2d} from "../Primitives/Vector2d";
+import {Vector2d} from "../primitives/Vector2d";
 
 export abstract class SkeletonEvent {
 	public v: Vector2d = null;

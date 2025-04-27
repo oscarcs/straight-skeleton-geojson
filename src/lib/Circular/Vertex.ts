@@ -1,8 +1,8 @@
 import {CircularNode} from "./CircularNode";
-import {Vector2d} from "../Primitives/Vector2d";
-import {LineParametric2d} from "../Primitives/LineParametric2d";
+import {Vector2d} from "../primitives/Vector2d";
+import {LineParametric2d} from "../primitives/LineParametric2d";
 import {Edge} from "./Edge";
-import {FaceNode} from "../Path/FaceNode";
+import {FaceNode} from "../path/FaceNode";
 
 export class Vertex extends CircularNode {
 	readonly roundDigitCount = 5;

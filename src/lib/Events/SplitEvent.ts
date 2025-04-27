@@ -1,7 +1,7 @@
 import {SkeletonEvent} from "./SkeletonEvent";
-import {Edge} from "../Circular/Edge";
-import {Vertex} from "../Circular/Vertex";
-import {Vector2d} from "../Primitives/Vector2d";
+import {Edge} from "../circular/Edge";
+import {Vertex} from "../circular/Vertex";
+import {Vector2d} from "../primitives/Vector2d";
 
 export class SplitEvent extends SkeletonEvent {
 	public readonly oppositeEdge: Edge = null;

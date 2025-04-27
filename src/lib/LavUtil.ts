@@ -1,6 +1,6 @@
-import {Vertex} from "./Circular/Vertex";
+import {Vertex} from "./circular/Vertex";
 import {List} from "./Utils";
-import {CircularList} from "./Circular/CircularList";
+import {CircularList} from "./circular/CircularList";
 
 /**
  * The algorithm computes and simulates the events by maintaining a set of circular Lists of Active Vertices (LAVs).

@@ -1,6 +1,6 @@
 import {SkeletonEvent} from "./SkeletonEvent";
-import {Vertex} from "../Circular/Vertex";
-import {Vector2d} from "../Primitives/Vector2d";
+import {Vertex} from "../circular/Vertex";
+import {Vector2d} from "../primitives/Vector2d";
 
 export class EdgeEvent extends SkeletonEvent {
 	public readonly nextVertex: Vertex;

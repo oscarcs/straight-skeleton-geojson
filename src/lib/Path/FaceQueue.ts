@@ -1,7 +1,7 @@
 import {PathQueue} from "./PathQueue";
 import {FaceNode} from "./FaceNode";
 import {PathQueueNode} from "./PathQueueNode";
-import {Edge} from "../Circular/Edge";
+import {Edge} from "../circular/Edge";
 
 export class FaceQueue extends PathQueue<FaceNode> {
 	public edge: Edge = null;

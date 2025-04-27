@@ -1,8 +1,8 @@
 import {IChain} from "./IChain";
 import {EdgeEvent} from "../EdgeEvent";
 import {List} from "../../Utils";
-import {Edge} from "../../Circular/Edge";
-import {Vertex} from "../../Circular/Vertex";
+import {Edge} from "../../circular/Edge";
+import {Vertex} from "../../circular/Vertex";
 import {ChainType} from "./ChainType";
 
 export class EdgeChain implements IChain {

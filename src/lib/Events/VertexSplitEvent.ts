@@ -1,6 +1,6 @@
 import {SplitEvent} from "./SplitEvent";
-import {Vector2d} from "../Primitives/Vector2d";
-import {Vertex} from "../Circular/Vertex";
+import {Vector2d} from "../primitives/Vector2d";
+import {Vertex} from "../circular/Vertex";
 
 export class VertexSplitEvent extends SplitEvent {
 	constructor(point: Vector2d, distance: number, parent: Vertex) {
