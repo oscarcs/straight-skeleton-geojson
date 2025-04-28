@@ -6,7 +6,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "prepare": "npm run build",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "tsx src/test/test.ts"
   },
   "repository": {
     "type": "git",
@@ -22,6 +23,11 @@
     "@types/geojson": "^7946.0.16"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "@types/tape": "^5.8.1",
+    "load-json-file": "^7.0.1",
+    "tape": "^5.9.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3",
+    "write-json-file": "^6.0.0"
   }
 }
