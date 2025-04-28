@@ -1,5 +1,5 @@
 import {MultiPolygon, Position} from "geojson";
-import {Skeleton} from "./Skeleton";
+import {StraightSkeleton} from "./StraightSkeleton";
 import {HashSet, List, IComparer, Dictionary} from "./Utils";
 import {Vector2d} from "./primitives/Vector2d";
 import {PriorityQueue} from "./primitives/PriorityQueue";
@@ -27,16 +27,16 @@ import {LineLinear2d} from "./primitives/LineLinear2d";
 import {EdgeResult} from "./EdgeResult";
 import {ChainType} from "./events/chains/ChainType";
 
-export class SkeletonBuilder {
+export class StraightSkeletonBuilder {
 	private static readonly RELATIVE_EPSILON = 1e-11;
-	private static splitEpsilon = SkeletonBuilder.RELATIVE_EPSILON;
+	private static splitEpsilon = StraightSkeletonBuilder.RELATIVE_EPSILON;
 
 	/**
-	 * Builds a skeleton from a GeoJSON MultiPolygon.
+	 * Builds a straight skeleton from a GeoJSON MultiPolygon.
 	 * @param multipolygon 
 	 * @returns Skeleton
 	 */
-	public static buildFromGeoJSON(multipolygon: MultiPolygon): Skeleton {
+	public static buildFromGeoJSON(multipolygon: MultiPolygon): StraightSkeleton {
 		const allEdges: List<EdgeResult> = new List();
 		const allDistances: Dictionary<Vector2d, number> = new Dictionary();
 
@@ -61,7 +61,7 @@ export class SkeletonBuilder {
 			}
 		}
 
-		return new Skeleton(allEdges, allDistances);
+		return new StraightSkeleton(allEdges, allDistances);
 	}
 
 	private static listFromPolygon(positions: Position[]): List<Vector2d> {
@@ -100,12 +100,12 @@ export class SkeletonBuilder {
 	}
 
 	/**
-	 * Build a skeleton from a polygon and an optional list of holes.
+	 * Build a straight skeleton from a polygon and an optional list of holes.
 	 * @param polygon 
 	 * @param holes 
 	 * @returns Skeleton
 	 */
-	public static build(polygon: List<Vector2d>, holes: List<List<Vector2d>> = null): Skeleton {
+	public static build(polygon: List<Vector2d>, holes: List<List<Vector2d>> = null): StraightSkeleton {
 		this.computeDynamicEpsilon(polygon, holes);
 
 		polygon = this.initPolygon(polygon);
@@ -728,7 +728,7 @@ export class SkeletonBuilder {
 		}
 	}
 
-	private static addFacesToOutput(faces: List<FaceQueue>): Skeleton {
+	private static addFacesToOutput(faces: List<FaceQueue>): StraightSkeleton {
 		const edgeOutputs = new List<EdgeResult>();
 		const distances = new Dictionary<Vector2d, number>();
 
@@ -749,7 +749,7 @@ export class SkeletonBuilder {
 				edgeOutputs.add(new EdgeResult(face.edge, faceList));
 			}
 		}
-		return new Skeleton(edgeOutputs, distances);
+		return new StraightSkeleton(edgeOutputs, distances);
 	}
 
 	private static initEvents(sLav: HashSet<CircularList<Vertex>>, queue: PriorityQueue<SkeletonEvent>, edges: List<Edge>) {

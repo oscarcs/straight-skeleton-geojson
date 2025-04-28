@@ -1,4 +1,4 @@
-import { SkeletonBuilder } from "../lib/index";
+import { StraightSkeletonBuilder } from "../lib/index";
 import { MultiPolygon } from "geojson";
 // import fs from "fs";
 import test from "tape";
@@ -38,7 +38,7 @@ test("straight-skeleton-geojson - Floating point epsilon handling at different s
         ]
     };
 
-    t.doesNotThrow(() => SkeletonBuilder.buildFromGeoJSON(poly1));
+    t.doesNotThrow(() => StraightSkeletonBuilder.buildFromGeoJSON(poly1));
 
     const poly2: MultiPolygon = {
         type: "MultiPolygon",
@@ -55,7 +55,7 @@ test("straight-skeleton-geojson - Floating point epsilon handling at different s
         ]
     };
 
-    t.doesNotThrow(() => SkeletonBuilder.buildFromGeoJSON(poly2));
+    t.doesNotThrow(() => StraightSkeletonBuilder.buildFromGeoJSON(poly2));
 
     const poly3: MultiPolygon = {
         type: "MultiPolygon",
@@ -72,7 +72,7 @@ test("straight-skeleton-geojson - Floating point epsilon handling at different s
         ]
     };
 
-    t.doesNotThrow(() => SkeletonBuilder.buildFromGeoJSON(poly3));
+    t.doesNotThrow(() => StraightSkeletonBuilder.buildFromGeoJSON(poly3));
 
     t.end();
 });
