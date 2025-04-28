@@ -5,7 +5,14 @@ import {PrimitiveUtils} from "./PrimitiveUtils";
 export class LineParametric2d {
 	public static readonly Empty: LineParametric2d = new LineParametric2d(Vector2d.Empty, Vector2d.Empty);
 
+	/**
+	 * Point on the line
+	 */
 	public A: Vector2d = null;
+	
+	/**
+	 * Direction vector of the line
+	 */
 	public U: Vector2d = null;
 
 	constructor(pA: Vector2d, pU: Vector2d) {
@@ -35,12 +42,12 @@ export class LineParametric2d {
 		return ray.U.dot(collideVector) < epsilon ? Vector2d.Empty : collide;
 	}
 
-	public isOnLeftSite(point: Vector2d, epsilon: number): boolean {
+	public isOnLeftSide(point: Vector2d, epsilon: number): boolean {
 		const direction = point.sub(this.A);
 		return PrimitiveUtils.orthogonalRight(this.U).dot(direction) < epsilon;
 	}
 
-	public isOnRightSite(point: Vector2d, epsilon: number): boolean {
+	public isOnRightSide(point: Vector2d, epsilon: number): boolean {
 		const direction = point.sub(this.A);
 		return PrimitiveUtils.orthogonalRight(this.U).dot(direction) > -epsilon;
 	}

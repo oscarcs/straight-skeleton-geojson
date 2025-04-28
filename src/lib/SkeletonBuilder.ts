@@ -850,13 +850,13 @@ export class SkeletonBuilder {
 		if (candidatePoint.equals(Vector2d.Empty))
 			return null;
 
-		if (edge.bisectorPrevious.isOnRightSite(candidatePoint, this.SPLIT_EPSILON) && edge.bisectorNext.isOnLeftSite(candidatePoint, this.SPLIT_EPSILON)) {
+		if (edge.bisectorPrevious.isOnRightSide(candidatePoint, this.SPLIT_EPSILON) && edge.bisectorNext.isOnLeftSide(candidatePoint, this.SPLIT_EPSILON)) {
 			const distance = this.calcDistance(candidatePoint, edge);
 
-			if (edge.bisectorPrevious.isOnLeftSite(candidatePoint, this.SPLIT_EPSILON)) {
+			if (edge.bisectorPrevious.isOnLeftSide(candidatePoint, this.SPLIT_EPSILON)) {
 				return new SplitCandidate(candidatePoint, distance, null, edge.begin);
 			}
-			if (edge.bisectorNext.isOnRightSite(candidatePoint, this.SPLIT_EPSILON)) {
+			if (edge.bisectorNext.isOnRightSide(candidatePoint, this.SPLIT_EPSILON)) {
 				return new SplitCandidate(candidatePoint, distance, null, edge.begin);
 			}
 
