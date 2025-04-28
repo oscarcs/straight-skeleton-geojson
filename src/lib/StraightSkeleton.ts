@@ -56,6 +56,8 @@ export class StraightSkeleton {
 	 * @returns MultiPolygon of offset shape(s)
 	 */
 	public offset(d: number): MultiPolygon {
+		const EPS = 1e-10;
+
 		// compute intersection point on each skeleton face for distance d
 		const intersectionMap = new Map<Edge, [number, number]>();
 		for (const edgeRes of this.edges) {
@@ -69,7 +71,7 @@ export class StraightSkeleton {
 				if (d1 === undefined || d2 === undefined) continue;
 				
 				// check if d lies between d1 and d2
-				if ((d1 - d) * (d2 - d) <= 0 && d1 !== d2) {
+				if ((d1 - d) * (d2 - d) <= EPS && Math.abs(d2 - d1) > EPS) {
 					const t = (d - d1) / (d2 - d1);
 					const x = p1.x + (p2.x - p1.x) * t;
 					const y = p1.y + (p2.y - p1.y) * t;
