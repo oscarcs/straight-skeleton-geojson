@@ -28,7 +28,8 @@ import {EdgeResult} from "./EdgeResult";
 import {ChainType} from "./events/chains/ChainType";
 
 export class SkeletonBuilder {
-	private static readonly SPLIT_EPSILON = 1e-10;
+	private static readonly RELATIVE_EPSILON = 1e-11;
+	private static splitEpsilon = SkeletonBuilder.RELATIVE_EPSILON;
 
 	/**
 	 * Builds a skeleton from a GeoJSON MultiPolygon.
@@ -74,6 +75,30 @@ export class SkeletonBuilder {
 		return list;
 	}
 
+	// compute dynamic epsilon based on input geometry scale
+	private static computeDynamicEpsilon(polygon: List<Vector2d>, holes: List<List<Vector2d>>) {
+		let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+		for (const pt of polygon) {
+			minX = Math.min(minX, pt.x);
+			maxX = Math.max(maxX, pt.x);
+			minY = Math.min(minY, pt.y);
+			maxY = Math.max(maxY, pt.y);
+		}
+		if (holes !== null) {
+			for (const hole of holes) {
+				for (const pt of hole) {
+					minX = Math.min(minX, pt.x);
+					maxX = Math.max(maxX, pt.x);
+					minY = Math.min(minY, pt.y);
+					maxY = Math.max(maxY, pt.y);
+				}
+			}
+		}
+		const span = Math.max(maxX - minX, maxY - minY);
+		const base = span > 0 ? span : 1;
+		this.splitEpsilon = base * this.RELATIVE_EPSILON;
+	}
+
 	/**
 	 * Build a skeleton from a polygon and an optional list of holes.
 	 * @param polygon 
@@ -81,6 +106,8 @@ export class SkeletonBuilder {
 	 * @returns Skeleton
 	 */
 	public static build(polygon: List<Vector2d>, holes: List<List<Vector2d>> = null): Skeleton {
+		this.computeDynamicEpsilon(polygon, holes);
+
 		polygon = this.initPolygon(polygon);
 		holes = this.makeClockwise(holes);
 
@@ -502,7 +529,7 @@ export class SkeletonBuilder {
 
 	private static removeEventsUnderHeight(queue: PriorityQueue<SkeletonEvent>, levelHeight: number) {
 		while (!queue.empty) {
-			if (queue.peek().distance > levelHeight + this.SPLIT_EPSILON) {
+			if (queue.peek().distance > levelHeight + this.splitEpsilon) {
 				break;
 			}
 			queue.next();
@@ -542,7 +569,7 @@ export class SkeletonBuilder {
 					this.addEventToGroup(parentGroup, test);
 					j--;
 				}
-				else if (eventCenter.distanceTo(test.v) < this.SPLIT_EPSILON) {
+				else if (eventCenter.distanceTo(test.v) < this.splitEpsilon) {
 					const item = levelEvents[j];
 					levelEvents.removeAt(j);
 					cluster.add(item);
@@ -618,7 +645,7 @@ export class SkeletonBuilder {
 
 		let event: SkeletonEvent;
 		while ((event = queue.peek()) !== null &&
-		Math.abs(event.distance - levelStartHeight) < this.SPLIT_EPSILON) {
+		Math.abs(event.distance - levelStartHeight) < this.splitEpsilon) {
 			const nextLevelEvent = queue.next();
 			if (!nextLevelEvent.isObsolete) {
 				level.add(nextLevelEvent);
@@ -747,8 +774,8 @@ export class SkeletonBuilder {
 		for (const oppositeEdge of oppositeEdges) {
 			const point = oppositeEdge.point;
 
-			if (Math.abs(distanceSquared - (-1)) > this.SPLIT_EPSILON) {
-				if (source.distanceSquared(point) > distanceSquared + this.SPLIT_EPSILON) {
+			if (Math.abs(distanceSquared - (-1)) > this.splitEpsilon) {
+				if (source.distanceSquared(point) > distanceSquared + this.splitEpsilon) {
 					continue;
 				}
 			}
@@ -789,10 +816,10 @@ export class SkeletonBuilder {
 			distance2 = point.distanceSquared(point2);
 		}
 
-		if (Math.abs(distance1 - this.SPLIT_EPSILON) < distance2) {
+		if (Math.abs(distance1 - this.splitEpsilon) < distance2) {
 			queue.add(this.createEdgeEvent(point1, vertex, nextVertex));
 		}
-		if (Math.abs(distance2 - this.SPLIT_EPSILON) < distance1) {
+		if (Math.abs(distance2 - this.splitEpsilon) < distance1) {
 			queue.add(this.createEdgeEvent(point2, previousVertex, vertex));
 		}
 
@@ -831,7 +858,7 @@ export class SkeletonBuilder {
 	}
 
 	private static edgeBehindBisector(bisector: LineParametric2d, edge: LineLinear2d): boolean {
-		return LineParametric2d.collide(bisector, edge, this.SPLIT_EPSILON).equals(Vector2d.Empty);
+		return LineParametric2d.collide(bisector, edge, this.splitEpsilon).equals(Vector2d.Empty);
 	}
 
 	private static calcCandidatePointForSplit(vertex: Vertex, edge: Edge): SplitCandidate {
@@ -850,18 +877,18 @@ export class SkeletonBuilder {
 
 		const edgesBisectorLine = new LineParametric2d(edgesCollide, edgesBisector).createLinearForm();
 
-		const candidatePoint = LineParametric2d.collide(vertex.bisector, edgesBisectorLine, this.SPLIT_EPSILON);
+		const candidatePoint = LineParametric2d.collide(vertex.bisector, edgesBisectorLine, this.splitEpsilon);
 
 		if (candidatePoint.equals(Vector2d.Empty))
 			return null;
 
-		if (edge.bisectorPrevious.isOnRightSide(candidatePoint, this.SPLIT_EPSILON) && edge.bisectorNext.isOnLeftSide(candidatePoint, this.SPLIT_EPSILON)) {
+		if (edge.bisectorPrevious.isOnRightSide(candidatePoint, this.splitEpsilon) && edge.bisectorNext.isOnLeftSide(candidatePoint, this.splitEpsilon)) {
 			const distance = this.calcDistance(candidatePoint, edge);
 
-			if (edge.bisectorPrevious.isOnLeftSide(candidatePoint, this.SPLIT_EPSILON)) {
+			if (edge.bisectorPrevious.isOnLeftSide(candidatePoint, this.splitEpsilon)) {
 				return new SplitCandidate(candidatePoint, distance, null, edge.begin);
 			}
-			if (edge.bisectorNext.isOnRightSide(candidatePoint, this.SPLIT_EPSILON)) {
+			if (edge.bisectorNext.isOnRightSide(candidatePoint, this.splitEpsilon)) {
 				return new SplitCandidate(candidatePoint, distance, null, edge.begin);
 			}
 
@@ -880,7 +907,7 @@ export class SkeletonBuilder {
 		const edgeADot = Math.abs(edge.norm.dot(edgeA.norm));
 		const edgeBDot = Math.abs(edge.norm.dot(edgeB.norm));
 
-		if (edgeADot + edgeBDot >= 2 - this.SPLIT_EPSILON) {
+		if (edgeADot + edgeBDot >= 2 - this.splitEpsilon) {
 			return null;
 		}
 
