@@ -248,9 +248,11 @@ export class SkeletonBuilder {
 				const lav = new CircularList<Vertex>();
 				sLav.add(lav);
 				lav.addLast(newVertex);
-				for (const vertex of lavPart)
+				for (const vertex of lavPart) {
 					lav.addLast(vertex);
-			} else {
+				}
+			}
+			else {
 				LavUtil.mergeBeforeBaseVertex(beginNextVertex, endPreviousVertex);
 				endPreviousVertex.addNext(newVertex);
 			}
@@ -267,10 +269,12 @@ export class SkeletonBuilder {
 			LavUtil.removeFromLav(chainBegin.currentVertex);
 			LavUtil.removeFromLav(chainEnd.currentVertex);
 
-			if (chainBegin.currentVertex !== null)
+			if (chainBegin.currentVertex !== null) {
 				chainBegin.currentVertex.isProcessed = true;
-			if (chainEnd.currentVertex !== null)
+			}
+			if (chainEnd.currentVertex !== null) {
 				chainEnd.currentVertex.isProcessed = true;
+			}
 		}
 	}
 
@@ -287,8 +291,9 @@ export class SkeletonBuilder {
 			const n2 = PrimitiveUtils.fromTo(bisector.A, beginNextVertex.point).normalized();
 			const bisectorPrediction = this.calcVectorBisector(n1, n2);
 
-			if (bisector.U.dot(bisectorPrediction) < 0)
+			if (bisector.U.dot(bisectorPrediction) < 0) {
 				bisector.U.negate();
+			}
 		}
 	}
 

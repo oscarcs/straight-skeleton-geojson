@@ -22,7 +22,7 @@ const directories = {
 //     };
 // });
 
-test("straight-skeleton-geojson - Correct Bisector Direction Bug", (t) => {
+test("straight-skeleton-geojson - Floating point epsilon handling", (t) => {
     const poly: MultiPolygon = {
         type: "MultiPolygon",
         coordinates: [
