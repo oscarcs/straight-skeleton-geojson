@@ -65,7 +65,9 @@ export class StraightSkeleton {
 				const p2 = pts[i + 1];
 				const d1 = this.distances.get(p1);
 				const d2 = this.distances.get(p2);
+				
 				if (d1 === undefined || d2 === undefined) continue;
+				
 				// check if d lies between d1 and d2
 				if ((d1 - d) * (d2 - d) <= 0 && d1 !== d2) {
 					const t = (d - d1) / (d2 - d1);
@@ -76,20 +78,26 @@ export class StraightSkeleton {
 				}
 			}
 		}
+
 		// assemble closed rings following edge.next pointers
 		const visited = new Set<Edge>();
 		const rings: Array<Array<[number, number]>> = [];
 		for (const edgeRes of this.edges) {
 			const startEdge = edgeRes.edge;
+			
 			if (visited.has(startEdge) || !intersectionMap.has(startEdge)) continue;
+			
 			const ring: Array<[number, number]> = [];
 			let curr: Edge = startEdge;
+			
 			do {
 				const coord = intersectionMap.get(curr)!;
 				ring.push(coord);
 				visited.add(curr);
 				curr = curr.next as Edge;
-			} while (curr !== startEdge && intersectionMap.has(curr));
+			}
+			while (curr !== startEdge && intersectionMap.has(curr));
+			
 			if (ring.length) {
 				// ensure ring is closed
 				const first = ring[0];
