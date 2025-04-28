@@ -2,6 +2,7 @@ import {MultiLineString, MultiPolygon} from "geojson";
 import {Vector2d} from "./primitives/Vector2d";
 import {EdgeResult} from "./EdgeResult";
 import {Dictionary, List} from "./Utils";
+import {Edge} from "./circular/Edge";
 
 export class StraightSkeleton {
 	/**
@@ -55,104 +56,50 @@ export class StraightSkeleton {
 	 * @returns MultiPolygon of offset shape(s)
 	 */
 	public offset(d: number): MultiPolygon {
-		// Helper to create a sorted key for an undirected skeleton segment
-		const makeKey = (a: Vector2d, b: Vector2d): string => {
-			const k1 = `${a.x},${a.y}|${b.x},${b.y}`;
-			const k2 = `${b.x},${b.y}|${a.x},${a.y}`;
-			return k1 < k2 ? k1 : k2;
-		};
-
-		const loops: Array<Array<[number, number]>> = [];
-		const visited = new Set<string>();
-		const adjacency = new Map<string, Array<{faceIndex: number, index: number, u: Vector2d, v: Vector2d}>>();
-
-		// build adjacency map for each skeleton segment across faces
-		for (let fi = 0; fi < this.edges.length; fi++) {
-			const poly = this.edges[fi].polygon;
-			for (let j = 0; j < poly.count - 1; j++) {
-				const u = poly[j], v = poly[j + 1];
-				const key = makeKey(u, v);
-				if (!adjacency.has(key)) {
-					adjacency.set(key, []);
-				}
-				adjacency.get(key).push({ faceIndex: fi, index: j, u, v });
-			}
-		}
-
-		// scan all segments, trace new loops when d is in interval and not yet visited
-		for (let fi = 0; fi < this.edges.length; fi++) {
-			const poly = this.edges[fi].polygon;
-			for (let j = 0; j < poly.count - 1; j++) {
-				const p0 = poly[j], p1 = poly[j + 1];
-				const tag = `${fi}:${j}`;
-				if (visited.has(tag)) {
-					continue;
-				} 
-				const d0 = this.distances.get(p0)!;
-				const d1 = this.distances.get(p1)!;
-				if (d < Math.min(d0, d1) || d > Math.max(d0, d1)) {
-					continue;
-				}
-
-				const loop: Array<[number, number]> = [];
-				let curFace = fi, curIdx = j, curU = p0, curV = p1;
-				let startTag = `${fi}:${j}`;
-				let key = makeKey(curU, curV);
-
-				do {
-					// interpolate intersection point
-					const du = this.distances.get(curU)!;
-					const dv = this.distances.get(curV)!;
-					const t = (d - du) / (dv - du);
-					const x = curU.x + (curV.x - curU.x) * t;
-					const y = curU.y + (curV.y - curU.y) * t;
-					loop.push([x, y]);
-
-					visited.add(`${curFace}:${curIdx}`);
-
-					// find the opposite face sharing this segment
-					const entries = adjacency.get(key) || [];
-					let neighbor: {faceIndex: number, index: number, u: Vector2d, v: Vector2d} | undefined;
-					for (const e of entries) {
-						if (e.faceIndex !== curFace) { neighbor = e; break; }
-					}
-					if (!neighbor) {
-						break;
-					}
-
-					// enter neighbor face and look for next segment
-					const nf = neighbor.faceIndex;
-					const startIdx = neighbor.index;
-					const poly2 = this.edges[nf].polygon;
-					let found = false;
-					for (let k = 1; k < poly2.count; k++) {
-						const idx = (startIdx + k) % (poly2.count - 1);
-						const a = poly2[idx], b = poly2[idx + 1];
-						const da = this.distances.get(a)!, db = this.distances.get(b)!;
-						if (d >= Math.min(da, db) && d <= Math.max(da, db)) {
-							curFace = nf;
-							curIdx = idx;
-							curU = a;
-							curV = b;
-							key = makeKey(curU, curV);
-							found = true;
-							break;
-						}
-					}
-					if (!found) {
-						break;
-					}
-
-				}
-				while (`${curFace}:${curIdx}` !== startTag);
-
-				if (loop.length > 0) {
-					loops.push(loop);
+		// compute intersection point on each skeleton face for distance d
+		const intersectionMap = new Map<Edge, [number, number]>();
+		for (const edgeRes of this.edges) {
+			const pts = edgeRes.polygon;
+			for (let i = 0; i < pts.length - 1; i++) {
+				const p1 = pts[i];
+				const p2 = pts[i + 1];
+				const d1 = this.distances.get(p1);
+				const d2 = this.distances.get(p2);
+				if (d1 === undefined || d2 === undefined) continue;
+				// check if d lies between d1 and d2
+				if ((d1 - d) * (d2 - d) <= 0 && d1 !== d2) {
+					const t = (d - d1) / (d2 - d1);
+					const x = p1.x + (p2.x - p1.x) * t;
+					const y = p1.y + (p2.y - p1.y) * t;
+					intersectionMap.set(edgeRes.edge, [x, y]);
+					break;
 				}
 			}
 		}
-
-		// wrap each loop as a single-ring polygon in a MultiPolygon
-		return { type: "MultiPolygon", coordinates: loops.map(r => [r]) };
+		// assemble closed rings following edge.next pointers
+		const visited = new Set<Edge>();
+		const rings: Array<Array<[number, number]>> = [];
+		for (const edgeRes of this.edges) {
+			const startEdge = edgeRes.edge;
+			if (visited.has(startEdge) || !intersectionMap.has(startEdge)) continue;
+			const ring: Array<[number, number]> = [];
+			let curr: Edge = startEdge;
+			do {
+				const coord = intersectionMap.get(curr)!;
+				ring.push(coord);
+				visited.add(curr);
+				curr = curr.next as Edge;
+			} while (curr !== startEdge && intersectionMap.has(curr));
+			if (ring.length) {
+				// ensure ring is closed
+				const first = ring[0];
+				const last = ring[ring.length - 1];
+				if (first[0] !== last[0] || first[1] !== last[1]) {
+					ring.push(first);
+				}
+				rings.push(ring);
+			}
+		}
+		return { type: "MultiPolygon", coordinates: rings.map(r => [r]) };
 	}
 }
