@@ -56,8 +56,6 @@ export class StraightSkeleton {
 	 * @returns MultiPolygon of offset shape(s)
 	 */
 	public offset(d: number): MultiPolygon {
-		const EPS = 1e-10;
-
 		// compute intersection point on each skeleton face for distance d
 		const intersectionMap = new Map<Edge, [number, number]>();
 		for (const edgeRes of this.edges) {
@@ -71,7 +69,7 @@ export class StraightSkeleton {
 				if (d1 === undefined || d2 === undefined) continue;
 				
 				// check if d lies between d1 and d2
-				if ((d1 - d) * (d2 - d) <= EPS && Math.abs(d2 - d1) > EPS) {
+				if ((d1 - d) * (d2 - d) <= 0 && d1 !== d2) {
 					const t = (d - d1) / (d2 - d1);
 					const x = p1.x + (p2.x - p1.x) * t;
 					const y = p1.y + (p2.y - p1.y) * t;
@@ -84,32 +82,42 @@ export class StraightSkeleton {
 		// assemble closed rings following edge.next pointers
 		const visited = new Set<Edge>();
 		const rings: Array<Array<[number, number]>> = [];
+
+		// group edges by their original circular list to handle separate polygons independently
+		const groups = new Map<any, EdgeResult[]>();
 		for (const edgeRes of this.edges) {
-			const startEdge = edgeRes.edge;
-			
-			if (visited.has(startEdge) || !intersectionMap.has(startEdge)) continue;
-			
-			const ring: Array<[number, number]> = [];
-			let curr: Edge = startEdge;
-			
-			do {
-				const coord = intersectionMap.get(curr)!;
-				ring.push(coord);
-				visited.add(curr);
-				curr = curr.next as Edge;
+			const list = edgeRes.edge.list;
+			if (!groups.has(list)) {
+				groups.set(list, []);
 			}
-			while (curr !== startEdge && intersectionMap.has(curr));
-			
-			if (ring.length) {
-				// ensure ring is closed
-				const first = ring[0];
-				const last = ring[ring.length - 1];
-				if (first[0] !== last[0] || first[1] !== last[1]) {
-					ring.push(first);
+			groups.get(list)!.push(edgeRes);
+		}
+
+		for (const group of groups.values()) {
+			for (const edgeRes of group) {
+				const startEdge = edgeRes.edge;
+				if (visited.has(startEdge) || !intersectionMap.has(startEdge)) continue;
+				const ring: Array<[number, number]> = [];
+				let curr: Edge = startEdge;
+				do {
+					const coord = intersectionMap.get(curr)!;
+					ring.push(coord);
+					visited.add(curr);
+					curr = curr.next as Edge;
+				} while (curr !== startEdge && intersectionMap.has(curr));
+
+				if (ring.length) {
+					// ensure ring is closed
+					const first = ring[0];
+					const last = ring[ring.length - 1];
+					if (first[0] !== last[0] || first[1] !== last[1]) {
+						ring.push(first);
+					}
+					rings.push(ring);
 				}
-				rings.push(ring);
 			}
 		}
+
 		return { type: "MultiPolygon", coordinates: rings.map(r => [r]) };
 	}
 }
