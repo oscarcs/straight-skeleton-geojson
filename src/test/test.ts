@@ -76,3 +76,59 @@ test("straight-skeleton-geojson - Floating point epsilon handling at different s
 
     t.end();
 });
+
+test('straight-skeleton-geojson - Offset shape can be composed of multiple polygons', (t) => {
+    // Bow tie shape
+    const poly: MultiPolygon = {
+        type: "MultiPolygon",
+        coordinates: [
+            [
+                [
+                    [0, 0],
+                    [0.57, 0.49],
+                    [1, 0],
+                    [1, 1],
+                    [0.5, 0.51],
+                    [0, 1],
+                    [0, 0]
+                ]
+            ]
+        ]
+    };
+
+    const skeleton = StraightSkeletonBuilder.buildFromGeoJSON(poly);
+    const offset = skeleton.offset(0.15);
+
+    const pointsInTriangle1 = [
+        [0.7345805957958975, 0.5298681089697171],
+        [0.8500005201932845, 0.3983428885088353],
+        [0.8500005201932845, 0.6429798106560808],
+    ];
+
+    const pointsInTriangle2 = [
+        [0.3218944337967525, 0.47452242472686373],
+        [0.15000020647380688, 0.6429780810845991],
+        [0.15000020647380688, 0.32675434948957693],
+    ];
+
+    t.equal(offset.type, "MultiPolygon");
+
+    if (offset.coordinates.length !== 2) {
+        t.fail("Expected two polygons in the offset result");
+        t.end();
+        return;
+    }
+
+    const outputTriangle1 = offset.coordinates[0][0];
+    const outputTriangle2 = offset.coordinates[1][0];
+
+    // Check if the output triangles have only the points in the expected points lists
+    for (const point of pointsInTriangle1) {
+        t.ok(outputTriangle1.some((p: number[]) => p[0] === point[0] && p[1] === point[1]), `Point ${point} not found in triangle 1`);
+    }
+    for (const point of pointsInTriangle2) {
+        t.ok(outputTriangle2.some((p: number[]) => p[0] === point[0] && p[1] === point[1]), `Point ${point} not found in triangle 2`);
+    }
+
+    t.end();
+});
