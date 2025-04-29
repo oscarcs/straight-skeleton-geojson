@@ -77,6 +77,56 @@ test("straight-skeleton-geojson - Floating point epsilon handling at different s
     t.end();
 });
 
+test('straight-skeleton-geojson - Offset shape is a single polygon', (t) => {
+    // Square shape
+    const poly: MultiPolygon = {
+        type: "MultiPolygon",
+        coordinates: [
+            [
+                [
+                    [0, 0],
+                    [1, 0],
+                    [1, 1],
+                    [0, 1],
+                    [0, 0]
+                ]
+            ]
+        ]
+    };
+    const skeleton = StraightSkeletonBuilder.buildFromGeoJSON(poly);
+    const offset = skeleton.offset(0.15);
+    const expectedPoints = [
+        [0.15, 0],
+        [0.85, 0],
+        [1, 0.15],
+        [1, 0.85],
+        [0.85, 1],
+        [0.15, 1],
+        [0, 0.85],
+        [0, 0.15],
+        [0.15, 0]
+    ];
+    t.equal(offset.type, "MultiPolygon");
+    t.equal(offset.coordinates.length, 1);
+    const outputPolygon = offset.coordinates[0][0];
+    
+    // Check if the output polygon has only the points in the expected points list
+    for (const point of expectedPoints) {
+        t.ok(outputPolygon.some((p: number[]) => p[0] === point[0] && p[1] === point[1]), `Point ${point} not found in output polygon`);
+    }
+
+    // Check if the output polygon is closed
+    const firstPoint = outputPolygon[0];
+    const lastPoint = outputPolygon[outputPolygon.length - 1];
+    t.equal(firstPoint[0], lastPoint[0], "First and last points should be equal");
+    t.equal(firstPoint[1], lastPoint[1], "First and last points should be equal");
+   
+    // Check if the output polygon has the same number of points as expected
+    t.equal(outputPolygon.length, expectedPoints.length, "Output polygon should have the same number of points as expected");
+
+    t.end();
+});
+
 test('straight-skeleton-geojson - Offset shape can be composed of multiple polygons', (t) => {
     // Bow tie shape
     const poly: MultiPolygon = {
