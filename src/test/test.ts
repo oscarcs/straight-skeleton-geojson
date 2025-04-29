@@ -77,6 +77,8 @@ test("straight-skeleton-geojson - Floating point epsilon handling at different s
     t.end();
 });
 
+const close = (a: number, b: number, eps = 1e-8): boolean => Math.abs(a - b) < eps;
+
 test('straight-skeleton-geojson - Offset shape is a single polygon', (t) => {
     // Square shape
     const poly: MultiPolygon = {
@@ -96,15 +98,11 @@ test('straight-skeleton-geojson - Offset shape is a single polygon', (t) => {
     const skeleton = StraightSkeletonBuilder.buildFromGeoJSON(poly);
     const offset = skeleton.offset(0.15);
     const expectedPoints = [
-        [0.15, 0],
-        [0.85, 0],
-        [1, 0.15],
-        [1, 0.85],
-        [0.85, 1],
-        [0.15, 1],
-        [0, 0.85],
-        [0, 0.15],
-        [0.15, 0]
+        [0.85, 0.15],
+        [0.85, 0.85],
+        [0.15, 0.85],
+        [0.15, 0.15],
+        [0.85, 0.15]
     ];
     t.equal(offset.type, "MultiPolygon");
     t.equal(offset.coordinates.length, 1);
@@ -112,16 +110,19 @@ test('straight-skeleton-geojson - Offset shape is a single polygon', (t) => {
     
     // Check if the output polygon has only the points in the expected points list
     for (const point of expectedPoints) {
-        t.ok(outputPolygon.some((p: number[]) => p[0] === point[0] && p[1] === point[1]), `Point ${point} not found in output polygon`);
+        t.ok(
+            outputPolygon.some((p: number[]) =>
+                close(p[0], point[0]) && close(p[1], point[1])
+            ),
+            `Point ${point} not found in output polygon`
+        );
     }
 
-    // Check if the output polygon is closed
     const firstPoint = outputPolygon[0];
     const lastPoint = outputPolygon[outputPolygon.length - 1];
     t.equal(firstPoint[0], lastPoint[0], "First and last points should be equal");
     t.equal(firstPoint[1], lastPoint[1], "First and last points should be equal");
    
-    // Check if the output polygon has the same number of points as expected
     t.equal(outputPolygon.length, expectedPoints.length, "Output polygon should have the same number of points as expected");
 
     t.end();
@@ -174,10 +175,20 @@ test('straight-skeleton-geojson - Offset shape can be composed of multiple polyg
 
     // Check if the output triangles have only the points in the expected points lists
     for (const point of pointsInTriangle1) {
-        t.ok(outputTriangle1.some((p: number[]) => p[0] === point[0] && p[1] === point[1]), `Point ${point} not found in triangle 1`);
+        t.ok(
+            outputTriangle1.some((p: number[]) =>
+                close(p[0], point[0]) && close(p[1], point[1])
+            ),
+            `Point ${point} not found in triangle 1`
+        );
     }
     for (const point of pointsInTriangle2) {
-        t.ok(outputTriangle2.some((p: number[]) => p[0] === point[0] && p[1] === point[1]), `Point ${point} not found in triangle 2`);
+        t.ok(
+            outputTriangle2.some((p: number[]) =>
+                close(p[0], point[0]) && close(p[1], point[1])
+            ),
+            `Point ${point} not found in triangle 2`
+        );
     }
 
     t.end();
