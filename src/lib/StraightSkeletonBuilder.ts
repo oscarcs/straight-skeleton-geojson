@@ -39,7 +39,6 @@ export class StraightSkeletonBuilder {
 	public static buildFromGeoJSON(multipolygon: MultiPolygon): StraightSkeleton {
 		const allEdges: List<EdgeResult> = new List();
 		const allDistances: Dictionary<Vector2d, number> = new Dictionary();
-		const allFaces: List<FaceQueue> = new List();
 
 		for (const polygon of multipolygon.coordinates) {
 			if (polygon.length > 0) {
@@ -59,14 +58,10 @@ export class StraightSkeletonBuilder {
 				for (const [key, distance] of skeleton.distances.entries()) {
 					allDistances.add(key, distance);
 				}
-
-				for (const face of skeleton.faces) {
-					allFaces.add(face);
-				}
 			}
 		}
 
-		return new StraightSkeleton(allEdges, allDistances, allFaces)
+		return new StraightSkeleton(allEdges, allDistances);
 	}
 
 	private static listFromPolygon(positions: Position[]): List<Vector2d> {
@@ -754,7 +749,7 @@ export class StraightSkeletonBuilder {
 				edgeOutputs.add(new EdgeResult(face.edge, faceList));
 			}
 		}
-		return new StraightSkeleton(edgeOutputs, distances, faces);
+		return new StraightSkeleton(edgeOutputs, distances);
 	}
 
 	private static initEvents(sLav: HashSet<CircularList<Vertex>>, queue: PriorityQueue<SkeletonEvent>, edges: List<Edge>) {
