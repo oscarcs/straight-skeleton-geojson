@@ -2,11 +2,13 @@
 
 This is an adaptation of the TypeScript port by vHawk/StrandedKitty of the [C# straight skeleton implementation](https://github.com/reinterpretcat/csharp-libs/tree/master/straight_skeleton).
 
-It has been modified to input and output the correct geojson primitives.
+It has been modified to input and output geojson, and mitered offset calculations are also included. The code has been cleaned up a bit and made to follow Typescript conventions more closely.
 
-From the original C# library:
+You should use this library if you need a pure Typescript implementation with few dependencies. You shouldn't use this library if robustness or accuracy are very important to you: the CGAL algorithms can be run in a browswer using wasm now.
 
-> Implementation of straight skeleton algorithm for polygons with holes. It is based on concept of tracking bisector intersection with queue of events to process and circular list with processed events called lavs. This implementation is highly modified concept described by Petr Felkel and Stepan Obdrzalek. In compare to original this algorithm has new kind of event and support for multiple events which appear in the same distance from edges. It is common when processing degenerate cases caused by polygon with right angles.
+Algorithm description from the original C# library:
+
+> Implementation of straight skeleton algorithm for polygons with holes. It is based on concept of tracking bisector intersection with queue of events to process and circular list with processed events called lavs. This implementation is highly modified concept described by Petr Felkel and Stepan Obdrzalek. Compared to the original this algorithm has new kind of event, and support for multiple events which appear at the same distance from edges. It is common when processing degenerate cases caused by polygon with right angles.
 
 ## Example
 
@@ -14,5 +16,6 @@ From the original C# library:
 
 ## Remaining work
 
-- Implement partial straight skeletons
-- Add test suite
+- Robustness improvements (& potentially use an arbitrary precision math library)
+- Input polygons with holes
+- Improve test suite
