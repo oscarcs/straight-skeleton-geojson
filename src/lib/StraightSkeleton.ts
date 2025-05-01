@@ -1,4 +1,4 @@
-import {MultiLineString, MultiPolygon, Position} from "geojson";
+import {MultiLineString, MultiPolygon} from "geojson";
 import {Vector2d} from "./primitives/Vector2d";
 import {EdgeResult} from "./EdgeResult";
 import {Dictionary, List} from "./Utils";
