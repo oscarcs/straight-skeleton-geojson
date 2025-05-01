@@ -1,4 +1,4 @@
-import {MultiLineString, MultiPolygon} from "geojson";
+import {MultiLineString, MultiPolygon, Position} from "geojson";
 import {Vector2d} from "./primitives/Vector2d";
 import {EdgeResult} from "./EdgeResult";
 import {Dictionary, List} from "./Utils";
@@ -50,7 +50,7 @@ export class StraightSkeleton {
 	}
 
 	/**
-	 * Compute the offset at distance d using the straight skeleton.
+	 * Compute the offset polygons at distance d using the straight skeleton.
 	 * @param d offset distance
 	 * @returns MultiPolygon of offset shape(s)
 	 */
@@ -120,5 +120,41 @@ export class StraightSkeleton {
 			}
 		}
 		return { type: "MultiPolygon", coordinates: loops.map(l => [l]) };
+	}
+
+	/**
+	 * Compute the partial application of the straight skeleton, by removing the offset areas at distance d from the faces of the skeleton.
+	 * @param d offset distance
+	 * @returns MultiPolygon of straight skeleton minus offset shape(s)
+	 */
+	public partial(d: number): MultiPolygon {
+		const base = this.toMultiPolygon();
+		const inner = this.offset(d);
+		const result: Position[][][] = [];
+		
+		// ray-casting point-in-polygon test
+		const isPointInRing = (pt: Position, ring: Position[]): boolean => {
+			let inside = false;
+			for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+				const xi = ring[i][0], yi = ring[i][1];
+				const xj = ring[j][0], yj = ring[j][1];
+				const intersect = ((yi > pt[1]) !== (yj > pt[1])) && (pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi);
+				if (intersect) {
+					inside = !inside;
+				}
+			}
+			return inside;
+		};
+
+		for (const poly of base.coordinates) {
+			const outer = poly[0];
+			// collect inner rings that lie within this outer ring
+			const holes: Position[][] = inner.coordinates
+				.filter(polyInner => isPointInRing(polyInner[0][0], outer))
+				.map(polyInner => polyInner[0]);
+			result.push([outer, ...holes]);
+		}
+
+		return { type: "MultiPolygon", coordinates: result };
 	}
 }
